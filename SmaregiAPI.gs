@@ -293,6 +293,42 @@ function autoSyncDailySummary() {
 }
 
 /**
+ * 診断テスト：GASエディタで実行してログを確認する
+ */
+function testDailySummaries() {
+  var props = PropertiesService.getScriptProperties().getProperties();
+  Logger.log('--- プロパティ確認 ---');
+  Logger.log('CONTRACT_ID : ' + (props['SMAREGI_CONTRACT_ID']   ? '✅ 設定済' : '❌ 未設定'));
+  Logger.log('CLIENT_ID   : ' + (props['SMAREGI_CLIENT_ID']     ? '✅ 設定済' : '❌ 未設定'));
+  Logger.log('CLIENT_SECRET:' + (props['SMAREGI_CLIENT_SECRET'] ? '✅ 設定済' : '❌ 未設定'));
+
+  Logger.log('--- トークン取得 ---');
+  var token = _getAccessToken();
+  Logger.log(token ? '✅ 取得成功' : '❌ 取得失敗');
+  if (!token) return;
+
+  Logger.log('--- /pos/daily_summaries テスト ---');
+  var today = _formatDate(new Date());
+  var ym    = today.substring(0, 7);         // 'YYYY-MM'
+  var from  = ym + '-01';
+  var to    = today;
+
+  // パターンA: sum_date-from / sum_date-to
+  var resA = _smaregiRequest('/pos/daily_summaries', {
+    'sum_date-from': from, 'sum_date-to': to, limit: 10
+  });
+  Logger.log('[A] sum_date-from/to → ' + (resA === null ? 'null(APIエラー)' : JSON.stringify(resA).substring(0, 200)));
+
+  // パターンB: sum_date 単日（今日）
+  var resB = _smaregiRequest('/pos/daily_summaries', { 'sum_date': today, limit: 10 });
+  Logger.log('[B] sum_date=' + today + ' → ' + (resB === null ? 'null(APIエラー)' : JSON.stringify(resB).substring(0, 200)));
+
+  // パターンC: パラメータなし（全件先頭10件）
+  var resC = _smaregiRequest('/pos/daily_summaries', { limit: 10 });
+  Logger.log('[C] 全件 → ' + (resC === null ? 'null(APIエラー)' : JSON.stringify(resC).substring(0, 200)));
+}
+
+/**
  * 毎日0時トリガーをセットアップする。
  * GASエディタから一度だけ手動実行する。
  */
