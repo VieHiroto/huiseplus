@@ -211,39 +211,34 @@ function getMonthlySales(yearMonth) {
   var lastDay  = new Date(year, month, 0).getDate();
   var toDate   = yearMonth + '-' + _pad(lastDay);
 
-  var data = _smaregiRequest('/pos/daily_summaries', {
-    'sum_date-from': fromDate,
-    'sum_date-to':   toDate,
-    sort:  'sumDate',
-    limit: 100        // 月最大31日なので100で十分
-  });
-
-  if (!data) return [];
-
-  var summaries = Array.isArray(data) ? data : (data.result || []);
-
-  // 同日に複数ドロアがある場合を考慮して日付ごとに合算
-  var dailyMap = {};
-  summaries.forEach(function(s) {
-    var date = (s.sumDate || '').substring(0, 10);
-    if (!date) return;
-    if (!dailyMap[date]) dailyMap[date] = { customerCount: 0, totalAmount: 0 };
-    dailyMap[date].totalAmount    += parseFloat(s.total      || s.salesTotal || 0);
-    dailyMap[date].customerCount  += parseInt(s.transactionCount || 0, 10);
-  });
-
+  // sum_date-from/to は未サポートのため1日ずつ取得
   var DOW    = ['日', '月', '火', '水', '木', '金', '土'];
   var result = [];
   for (var day = 1; day <= lastDay; day++) {
     var dateStr = yearMonth + '-' + _pad(day);
-    var d   = dailyMap[dateStr] || { customerCount: 0, totalAmount: 0 };
     var dow = DOW[new Date(dateStr).getDay()];
+
+    var data = _smaregiRequest('/pos/daily_summaries', {
+      'sum_date': dateStr,
+      limit: 10   // 1日に複数ドロアがあっても10で十分
+    });
+
+    var totalAmount   = 0;
+    var customerCount = 0;
+    if (data) {
+      var summaries = Array.isArray(data) ? data : (data.result || []);
+      summaries.forEach(function(s) {
+        totalAmount   += parseFloat(s.total || s.salesTotal || 0);
+        customerCount += parseInt(s.transactionCount || 0, 10);
+      });
+    }
+
     result.push({
       date:          dateStr,
       day:           day,
       dayOfWeek:     dow,
-      customerCount: d.customerCount,
-      totalAmount:   d.totalAmount
+      customerCount: customerCount,
+      totalAmount:   totalAmount
     });
   }
 
