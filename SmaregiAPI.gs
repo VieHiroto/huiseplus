@@ -159,26 +159,24 @@ function _smaregiRequest(endpoint, params) {
 function getTodaySales() {
   var today = _formatDate(new Date());
 
-  var data = _smaregiRequest('/pos/transactions', {
-    'sum_date-from': today,
-    'sum_date-to': today,
-    limit: 1000
+  // /pos/transactions の sum_date-from/to は未サポートのため
+  // /pos/daily_summaries の sum_date（単日）を使用
+  var data = _smaregiRequest('/pos/daily_summaries', {
+    'sum_date': today,
+    limit: 10
   });
 
   if (!data) {
     return { date: today, customerCount: 0, totalAmount: 0, error: 'APIエラー' };
   }
 
-  var transactions = Array.isArray(data) ? data : (data.result || []);
-  var totalAmount = 0;
+  var summaries = Array.isArray(data) ? data : (data.result || []);
+  var totalAmount   = 0;
   var customerCount = 0;
 
-  transactions.forEach(function(t) {
-    // キャンセル・返品を除外（Smaregi APIはcancelDivision: '1'）
-    if (t.cancelDivision === '1' || t.cancel_flg === '1') return;
-
-    totalAmount += parseFloat(t.total || t.subtotal || t.unitNonDiscountsubtotal || 0);
-    customerCount += parseInt(t.customerCount || t.customer_count || 1, 10);
+  summaries.forEach(function(s) {
+    totalAmount   += parseFloat(s.total || 0);
+    customerCount += parseInt(s.transactionCount || 0, 10);
   });
 
   // 日売上シートに保存
