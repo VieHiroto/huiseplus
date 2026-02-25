@@ -156,11 +156,11 @@ function getTodaySales() {
   var customerCount = 0;
 
   transactions.forEach(function(t) {
-    // キャンセル・返品を除外
-    if (t.cancel_flg === '1') return;
+    // キャンセル・返品を除外（Smaregi APIはcancelDivision: '1'）
+    if (t.cancelDivision === '1' || t.cancel_flg === '1') return;
 
-    totalAmount += parseFloat(t.total || t.total_price || 0);
-    customerCount += parseInt(t.customer_count || 1, 10);
+    totalAmount += parseFloat(t.total || t.subtotal || t.unitNonDiscountsubtotal || 0);
+    customerCount += parseInt(t.customerCount || t.customer_count || 1, 10);
   });
 
   // 日売上シートに保存
@@ -207,16 +207,20 @@ function getMonthlySales(yearMonth) {
   // 日付ごとに集計
   var dailyMap = {};
   transactions.forEach(function(t) {
-    if (t.cancel_flg === '1') return;
+    // キャンセル・返品を除外（Smaregi APIはcancelDivision: '1'）
+    if (t.cancelDivision === '1' || t.cancel_flg === '1') return;
 
-    var sumDate = (t.sum_date || t.transaction_date || '').substring(0, 10);
+    // sumDate（キャメルケース）またはフォールバックでtransactionDateTimeから日付取得
+    var sumDate = (t.sumDate || t.sum_date ||
+      (t.transactionDateTime || t.transaction_date || '').substring(0, 10)
+    ).substring(0, 10);
     if (!sumDate) return;
 
     if (!dailyMap[sumDate]) {
       dailyMap[sumDate] = { customerCount: 0, totalAmount: 0 };
     }
-    dailyMap[sumDate].totalAmount += parseFloat(t.total || t.total_price || 0);
-    dailyMap[sumDate].customerCount += parseInt(t.customer_count || 1, 10);
+    dailyMap[sumDate].totalAmount += parseFloat(t.total || t.subtotal || t.unitNonDiscountsubtotal || 0);
+    dailyMap[sumDate].customerCount += parseInt(t.customerCount || t.customer_count || 1, 10);
   });
 
   var DOW = ['日', '月', '火', '水', '木', '金', '土'];
@@ -246,6 +250,7 @@ function getMonthlySales(yearMonth) {
 
 function _saveDailySales(date, customerCount, totalAmount) {
   var sheet = getSheet(SHEET_NAMES.DAILY_SALES);
+  if (!sheet) { Logger.log('シート「日売上」が見つかりません。setupSpreadsheet()を実行してください。'); return; }
   var now = new Date().toLocaleString('ja-JP');
 
   // 既存行を検索して上書き、なければ追記
@@ -261,6 +266,7 @@ function _saveDailySales(date, customerCount, totalAmount) {
 
 function _saveMonthlySales(yearMonth, data) {
   var sheet = getSheet(SHEET_NAMES.MONTHLY_SALES);
+  if (!sheet) { Logger.log('シート「月売上」が見つかりません。setupSpreadsheet()を実行してください。'); return; }
 
   // 対象年月の既存行を削除
   var values = sheet.getDataRange().getValues();

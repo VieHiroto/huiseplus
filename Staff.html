@@ -855,6 +855,9 @@ function loadMonthlySales() {
   document.getElementById('monthlySalesArea').innerHTML = '<div><span class="spinner-sm"></span> 取得中...</div>';
 
   google.script.run
+    .withFailureHandler(function(e) {
+      document.getElementById('monthlySalesArea').innerHTML = '<div style="color:#e53935">取得失敗: ' + escHtml(String(e)) + '</div>';
+    })
     .withSuccessHandler(function(json) {
       var d = JSON.parse(json);
       if (!d.daily || d.daily.length === 0) {
