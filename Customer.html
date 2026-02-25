@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>本日のご案内</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic Pro', 'Meiryo', sans-serif;
+      background: #1a1a1a;
+      color: #f5f0e8;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #2c1a0e;
+      border-bottom: 2px solid #8b6914;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .store-name {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #d4a843;
+      letter-spacing: 0.1em;
+    }
+
+    .current-time {
+      font-size: 0.85rem;
+      color: #a08060;
+    }
+
+    main {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    /* ---- 営業状況カード ---- */
+    .status-card {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #8b6914;
+    }
+
+    .status-card.open    { border-left-color: #4caf50; }
+    .status-card.closed  { border-left-color: #e53935; }
+    .status-card.charter { border-left-color: #7b1fa2; }
+
+    .status-label {
+      font-size: 0.75rem;
+      color: #a08060;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .status-main {
+      font-size: 1.6rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .status-open    .status-main { color: #66bb6a; }
+    .status-closed  .status-main { color: #ef5350; }
+    .status-charter .status-main { color: #ce93d8; }
+
+    .status-hours {
+      font-size: 1rem;
+      color: #c9b490;
+      margin-bottom: 4px;
+    }
+
+    .status-note {
+      font-size: 0.85rem;
+      color: #a08060;
+      margin-top: 6px;
+    }
+
+    /* 待ち時間 */
+    .wait-badge {
+      display: inline-block;
+      background: #b71c1c;
+      color: #fff;
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    /* 明日 */
+    .tomorrow-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #3a3a3a;
+      font-size: 0.85rem;
+      color: #a08060;
+    }
+
+    .tomorrow-badge {
+      background: #37474f;
+      color: #b0bec5;
+      border-radius: 10px;
+      padding: 2px 10px;
+      font-size: 0.8rem;
+    }
+
+    .hotpepper-btn {
+      display: inline-block;
+      background: #e91e63;
+      color: #fff;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      text-decoration: none;
+      margin-left: auto;
+    }
+
+    /* ---- メニューカード ---- */
+    .section-title {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      color: #8b6914;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #3a3a3a;
+    }
+
+    .menu-card {
+      background: #2a2a2a;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+
+    .menu-tab-header {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .menu-tab {
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: default;
+      border: 1px solid #3a3a3a;
+      color: #a08060;
+    }
+
+    .menu-tab.active {
+      background: #8b6914;
+      color: #fff;
+      border-color: #8b6914;
+    }
+
+    .menu-list {
+      list-style: none;
+    }
+
+    .menu-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid #333;
+      font-size: 1rem;
+      color: #f5f0e8;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .menu-list li:last-child { border-bottom: none; }
+
+    .menu-list li::before {
+      content: '●';
+      color: #8b6914;
+      font-size: 0.6rem;
+    }
+
+    .menu-empty {
+      color: #555;
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    /* ローディング */
+    .loading {
+      text-align: center;
+      color: #555;
+      padding: 40px;
+    }
+
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid #333;
+      border-top-color: #8b6914;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #444;
+      font-size: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="store-name">本日のご案内</div>
+  <div class="current-time" id="currentTime"></div>
+</header>
+
+<main>
+  <!-- 営業状況 -->
+  <div id="businessSection" class="status-card">
+    <div class="loading"><div class="spinner"></div>読み込み中...</div>
+  </div>
+
+  <!-- メニュー -->
+  <div class="section-title">本日のお料理</div>
+  <div class="menu-card" id="menuSection">
+    <div class="loading"><div class="spinner"></div>読み込み中...</div>
+  </div>
+</main>
+
+<footer>情報は定期的に更新されます</footer>
+
+<script>
+  // 現在時刻表示
+  function updateClock() {
+    var now = new Date();
+    var h = now.getHours().toString().padStart(2,'0');
+    var m = now.getMinutes().toString().padStart(2,'0');
+    document.getElementById('currentTime').textContent = h + ':' + m;
+  }
+  updateClock();
+  setInterval(updateClock, 10000);
+
+  // ---- 営業状況描画 ----
+  function renderBusiness(data) {
+    var section = document.getElementById('businessSection');
+    var statusClass = 'open';
+    var statusText = '営業中';
+
+    if (data.status === '貸切') {
+      statusClass = 'charter';
+      statusText = '本日貸切';
+    } else if (data.status === '臨時休業') {
+      statusClass = 'closed';
+      statusText = '本日休業';
+    } else if (!data.isOpen) {
+      statusClass = 'closed';
+      statusText = '準備中';
+    }
+
+    section.className = 'status-card status-' + statusClass;
+
+    var hoursHtml = '';
+    if (data.status !== '臨時休業' && data.status !== '貸切') {
+      hoursHtml = '<div class="status-hours">営業時間 ' + data.displayOpen + ' 〜 ' + data.displayClose + '</div>';
+    }
+
+    var waitHtml = '';
+    if (data.hasWait && data.status !== '臨時休業' && data.status !== '貸切') {
+      waitHtml = '<div><span class="wait-badge">現在 約' + data.waitMin + '分お待ちいただいています</span></div>';
+    }
+
+    var noteHtml = data.specialNote ? '<div class="status-note">' + escHtml(data.specialNote) + '</div>' : '';
+
+    var tomorrowText = data.tomorrowPlan || '通常営業';
+    var tomorrowClass = tomorrowText === '休業' ? 'color:#ef5350' : '';
+    var hotpepperHtml = data.hotpepperUrl
+      ? '<a class="hotpepper-btn" href="' + escHtml(data.hotpepperUrl) + '" target="_blank" rel="noopener">予約はこちら</a>'
+      : '';
+
+    section.innerHTML =
+      '<div class="status-label">営業状況</div>' +
+      '<div class="status-main">' + statusText + '</div>' +
+      hoursHtml +
+      noteHtml +
+      waitHtml +
+      '<div class="tomorrow-row">' +
+        '<span>明日の予定</span>' +
+        '<span class="tomorrow-badge" style="' + tomorrowClass + '">' + escHtml(tomorrowText) + '</span>' +
+        hotpepperHtml +
+      '</div>';
+  }
+
+  // ---- メニュー描画 ----
+  function renderMenu(data) {
+    var section = document.getElementById('menuSection');
+    var html = '<div class="menu-tab-header">' +
+      '<span class="menu-tab active">メイン</span>' +
+      '<span class="menu-tab">おばんざい</span>' +
+    '</div>';
+
+    // メイン
+    html += '<div id="menuMain">';
+    if (data.main && data.main.length > 0) {
+      html += '<ul class="menu-list">';
+      data.main.forEach(function(item) {
+        html += '<li>' + escHtml(item.name) + '</li>';
+      });
+      html += '</ul>';
+    } else {
+      html += '<div class="menu-empty">本日のメインは後ほど更新されます</div>';
+    }
+    html += '</div>';
+
+    // おばんざい
+    html += '<div id="menuObanzai" style="display:none">';
+    if (data.obanzai && data.obanzai.length > 0) {
+      html += '<ul class="menu-list">';
+      data.obanzai.forEach(function(item) {
+        html += '<li>' + escHtml(item.name) + '</li>';
+      });
+      html += '</ul>';
+    } else {
+      html += '<div class="menu-empty">本日のおばんざいは後ほど更新されます</div>';
+    }
+    html += '</div>';
+
+    section.innerHTML = html;
+
+    // タブ切り替えイベント
+    var tabs = section.querySelectorAll('.menu-tab');
+    tabs[0].addEventListener('click', function() {
+      tabs[0].classList.add('active'); tabs[1].classList.remove('active');
+      document.getElementById('menuMain').style.display = '';
+      document.getElementById('menuObanzai').style.display = 'none';
+    });
+    tabs[1].addEventListener('click', function() {
+      tabs[1].classList.add('active'); tabs[0].classList.remove('active');
+      document.getElementById('menuMain').style.display = 'none';
+      document.getElementById('menuObanzai').style.display = '';
+    });
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ---- データ取得 ----
+  function loadData() {
+    google.script.run
+      .withSuccessHandler(function(json) {
+        renderBusiness(JSON.parse(json));
+      })
+      .withFailureHandler(function() {
+        document.getElementById('businessSection').innerHTML = '<div style="color:#ef5350">情報の取得に失敗しました</div>';
+      })
+      .apiGetBusinessStatus();
+
+    google.script.run
+      .withSuccessHandler(function(json) {
+        renderMenu(JSON.parse(json));
+      })
+      .withFailureHandler(function() {
+        document.getElementById('menuSection').innerHTML = '<div style="color:#ef5350">情報の取得に失敗しました</div>';
+      })
+      .apiGetMenu();
+  }
+
+  loadData();
+  // 2分ごとに自動更新
+  setInterval(loadData, 120000);
+</script>
+</body>
+</html>

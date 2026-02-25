@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スタッフ管理</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic Pro', 'Meiryo', sans-serif;
+      background: #f5f5f5;
+      color: #212121;
+      font-size: 15px;
+    }
+
+    /* ---- ナビ ---- */
+    header {
+      background: #37474f;
+      color: #fff;
+      padding: 0 16px;
+      display: flex;
+      align-items: stretch;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      padding: 14px 16px 14px 0;
+      font-weight: bold;
+      font-size: 1rem;
+      border-right: 1px solid #546e7a;
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+
+    nav { display: flex; overflow-x: auto; }
+
+    .nav-btn {
+      padding: 14px 16px;
+      cursor: pointer;
+      color: #b0bec5;
+      font-size: 0.85rem;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .nav-btn.active {
+      color: #fff;
+      border-bottom-color: #80cbc4;
+    }
+
+    /* ---- タブパネル ---- */
+    .tab-panel { display: none; padding: 20px 16px; max-width: 760px; margin: 0 auto; }
+    .tab-panel.active { display: block; }
+
+    /* ---- 共通カード ---- */
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #607d8b;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+    }
+
+    /* ---- フォーム ---- */
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: #546e7a;
+      margin-bottom: 4px;
+    }
+
+    input[type=text], input[type=number], input[type=time],
+    select, textarea {
+      width: 100%;
+      border: 1px solid #cfd8dc;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: #80cbc4;
+    }
+
+    textarea { resize: vertical; min-height: 70px; }
+
+    .btn {
+      display: inline-block;
+      padding: 9px 20px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: opacity 0.15s;
+    }
+
+    .btn:active { opacity: 0.75; }
+    .btn-primary { background: #37474f; color: #fff; }
+    .btn-teal    { background: #009688; color: #fff; }
+    .btn-amber   { background: #ff8f00; color: #fff; }
+    .btn-red     { background: #e53935; color: #fff; }
+    .btn-grey    { background: #eceff1; color: #546e7a; }
+
+    .btn + .btn { margin-left: 8px; }
+
+    /* ---- メッセージ ---- */
+    .msg {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-top: 10px;
+      display: none;
+    }
+    .msg.ok  { background: #e8f5e9; color: #2e7d32; display: block; }
+    .msg.err { background: #ffebee; color: #c62828; display: block; }
+
+    /* ---- メニュー ホワイトボード ---- */
+    .toggle-group {
+      display: flex;
+      background: #eceff1;
+      border-radius: 8px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      text-align: center;
+      padding: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #607d8b;
+      transition: all 0.2s;
+    }
+
+    .toggle-btn.active {
+      background: #fff;
+      color: #37474f;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    .menu-input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .menu-input-row input {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .menu-board {
+      margin-top: 14px;
+    }
+
+    .menu-board-section { margin-bottom: 18px; }
+
+    .menu-board-label {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #8d6e63;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .menu-item-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .menu-item-row:last-child { border-bottom: none; }
+
+    .menu-item-name { flex: 1; font-size: 0.95rem; }
+
+    .btn-del {
+      background: none;
+      border: 1px solid #ef9a9a;
+      color: #e53935;
+      border-radius: 4px;
+      padding: 3px 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .menu-empty { color: #aaa; font-size: 0.85rem; padding: 10px 0; }
+
+    /* ---- 売上 ---- */
+    .sales-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .sales-num-card {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .sales-num-label { font-size: 0.75rem; color: #607d8b; margin-bottom: 6px; }
+    .sales-num-value { font-size: 1.8rem; font-weight: bold; color: #37474f; }
+    .sales-num-unit  { font-size: 0.8rem; color: #90a4ae; margin-top: 2px; }
+
+    .monthly-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .monthly-table th {
+      background: #eceff1;
+      padding: 7px 10px;
+      text-align: left;
+      font-weight: bold;
+      color: #546e7a;
+    }
+
+    .monthly-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .monthly-table tr:hover td { background: #fafafa; }
+
+    .monthly-total {
+      font-weight: bold;
+      background: #e8f5e9;
+    }
+
+    /* ---- 引き継ぎ ---- */
+    .handover-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .handover-table th {
+      background: #eceff1;
+      padding: 7px 8px;
+      text-align: left;
+      font-size: 0.8rem;
+      color: #546e7a;
+      white-space: nowrap;
+    }
+
+    .handover-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .handover-table input[type=text], .handover-table input[type=number] {
+      margin-bottom: 0;
+      padding: 4px 6px;
+      font-size: 0.82rem;
+    }
+
+    /* ---- 営業状況 ---- */
+    .status-select-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .status-option {
+      flex: 1;
+      min-width: 80px;
+      border: 2px solid #cfd8dc;
+      border-radius: 8px;
+      padding: 10px 8px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+
+    .status-option.active         { border-color: #009688; background: #e0f2f1; font-weight: bold; }
+    .status-option[data-s='貸切'].active    { border-color: #7b1fa2; background: #f3e5f5; }
+    .status-option[data-s='臨時休業'].active { border-color: #e53935; background: #ffebee; }
+    .status-option[data-s='特別時間'].active { border-color: #f57c00; background: #fff3e0; }
+
+    .wait-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .wait-slider-row input[type=range] {
+      flex: 1;
+      margin-bottom: 0;
+      border: none;
+    }
+
+    .wait-value { font-weight: bold; width: 60px; text-align: center; font-size: 1.1rem; }
+
+    /* loading */
+    .spinner-sm {
+      width: 18px; height: 18px;
+      border: 2px solid #ccc;
+      border-top-color: #009688;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">スタッフ管理</div>
+  <nav>
+    <div class="nav-btn active" data-tab="menu">メニュー</div>
+    <div class="nav-btn" data-tab="business">営業状況</div>
+    <div class="nav-btn" data-tab="handover">引き継ぎ</div>
+    <div class="nav-btn" data-tab="sales">売上確認</div>
+  </nav>
+</header>
+
+<!-- ====================================================
+     タブ1: メニュー管理
+==================================================== -->
+<div class="tab-panel active" id="tab-menu">
+
+  <div class="card">
+    <div class="card-title">本日のメニュー追加</div>
+
+    <div class="toggle-group">
+      <div class="toggle-btn active" id="toggleMain" onclick="setCategory('メイン')">メイン</div>
+      <div class="toggle-btn" id="toggleObanzai" onclick="setCategory('おばんざい')">おばんざい</div>
+    </div>
+
+    <div class="menu-input-row">
+      <input type="text" id="menuInput" placeholder="品名を入力..." onkeydown="if(event.key==='Enter')addItem()">
+      <button class="btn btn-teal" onclick="addItem()">追加</button>
+    </div>
+    <div class="msg" id="menuMsg"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ホワイトボード</div>
+    <div id="menuBoard">
+      <div class="spinner-sm"></div> 読み込み中...
+    </div>
+    <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-grey" onclick="clearCategory('メイン')">メイン全消し</button>
+      <button class="btn btn-grey" onclick="clearCategory('おばんざい')">おばんざい全消し</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================
+     タブ2: 営業状況
+==================================================== -->
+<div class="tab-panel" id="tab-business">
+
+  <div class="card">
+    <div class="card-title">本日のステータス</div>
+    <div class="status-select-row" id="statusOptions">
+      <div class="status-option" data-s="通常営業">通常営業</div>
+      <div class="status-option" data-s="貸切">貸切</div>
+      <div class="status-option" data-s="臨時休業">臨時休業</div>
+      <div class="status-option" data-s="特別時間">特別時間</div>
+    </div>
+  </div>
+
+  <div class="card" id="specialHoursCard" style="display:none">
+    <div class="card-title">特別営業時間</div>
+    <div style="display:flex; gap:10px;">
+      <div style="flex:1">
+        <label>開始時間</label>
+        <input type="time" id="specialOpen">
+      </div>
+      <div style="flex:1">
+        <label>終了時間</label>
+        <input type="time" id="specialClose">
+      </div>
+    </div>
+    <label>備考（お客様表示）</label>
+    <input type="text" id="specialNote" placeholder="例：貸切のため外来不可">
+  </div>
+
+  <div class="card">
+    <div class="card-title">通常営業時間</div>
+    <div style="display:flex; gap:10px;">
+      <div style="flex:1">
+        <label>開始</label>
+        <input type="time" id="normalOpen">
+      </div>
+      <div style="flex:1">
+        <label>終了</label>
+        <input type="time" id="normalClose">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">現在の待ち時間</div>
+    <div class="wait-slider-row">
+      <span style="font-size:0.8rem;color:#607d8b;white-space:nowrap">0分</span>
+      <input type="range" id="waitSlider" min="0" max="120" step="5" value="0" oninput="updateWaitDisplay()">
+      <span style="font-size:0.8rem;color:#607d8b;white-space:nowrap">120分</span>
+      <div class="wait-value"><span id="waitDisplay">0</span>分</div>
+    </div>
+    <div style="margin-top:8px; font-size:0.8rem; color:#aaa">0分 = 待ちなし（表示されません）</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">明日の予定</div>
+    <select id="tomorrowPlan">
+      <option value="通常営業">通常営業</option>
+      <option value="貸切">貸切</option>
+      <option value="休業">休業</option>
+      <option value="特別時間">特別時間</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ホットペッパー予約URL</div>
+    <input type="text" id="hotpepperUrl" placeholder="https://...">
+  </div>
+
+  <button class="btn btn-primary" onclick="saveBusiness()" style="width:100%">保存する</button>
+  <div class="msg" id="businessMsg"></div>
+</div>
+
+<!-- ====================================================
+     タブ3: 引き継ぎ
+==================================================== -->
+<div class="tab-panel" id="tab-handover">
+
+  <div class="card">
+    <div class="card-title">メニュー引き継ぎ（残数・仕込み）</div>
+    <button class="btn btn-amber" onclick="generateHandover()">メニューから引き継ぎシートを作成</button>
+    <div class="msg" id="handoverGenMsg"></div>
+    <div id="handoverMenuTable" style="margin-top:14px; overflow-x:auto;"></div>
+    <button class="btn btn-teal" onclick="saveHandoverRows()" style="margin-top:10px">保存する</button>
+    <div class="msg" id="handoverSaveMsg"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">通常引き継ぎ記録</div>
+    <label>記録者名</label>
+    <input type="text" id="handoverAuthor" placeholder="山田">
+    <label>本日の状況</label>
+    <textarea id="handoverTodayStatus" placeholder="例：18:00から満席で待ちが発生。19:30に解消。"></textarea>
+    <label>明日への申し送り</label>
+    <textarea id="handoverNote" placeholder="例：鮮魚の仕込みを早めに、週末予約が2件あり。"></textarea>
+    <label>仕込み一覧</label>
+    <textarea id="handoverPrepList" placeholder="例：だし汁、煮物、漬物3種"></textarea>
+    <button class="btn btn-primary" onclick="saveGeneralHandover()">記録を保存</button>
+    <div class="msg" id="handoverGeneralMsg"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">過去の引き継ぎ記録</div>
+    <div id="handoverHistory">読み込み中...</div>
+  </div>
+</div>
+
+<!-- ====================================================
+     タブ4: 売上確認
+==================================================== -->
+<div class="tab-panel" id="tab-sales">
+
+  <div class="card">
+    <div class="card-title">本日の売上</div>
+    <div id="todaySalesArea">
+      <button class="btn btn-primary" onclick="loadTodaySales()">最新を取得</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">月別売上</div>
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+      <input type="month" id="monthPicker" style="width:auto; margin-bottom:0;">
+      <button class="btn btn-primary" onclick="loadMonthlySales()">取得</button>
+    </div>
+    <div id="monthlySalesArea"></div>
+  </div>
+</div>
+
+<script>
+// ================================================
+// 共通
+// ================================================
+function showMsg(id, text, isOk) {
+  var el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg ' + (isOk ? 'ok' : 'err');
+  setTimeout(function() { el.className = 'msg'; }, 3000);
+}
+
+function escHtml(str) {
+  return String(str||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// タブ切り替え
+document.querySelectorAll('.nav-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+
+    if (btn.dataset.tab === 'menu') loadMenu();
+    if (btn.dataset.tab === 'business') loadBusiness();
+    if (btn.dataset.tab === 'handover') { loadHandoverMenu(); loadHandoverHistory(); }
+    if (btn.dataset.tab === 'sales') initSales();
+  });
+});
+
+// ================================================
+// タブ1: メニュー
+// ================================================
+var currentCategory = 'メイン';
+
+function setCategory(cat) {
+  currentCategory = cat;
+  document.getElementById('toggleMain').classList.toggle('active', cat === 'メイン');
+  document.getElementById('toggleObanzai').classList.toggle('active', cat === 'おばんざい');
+}
+
+function addItem() {
+  var name = document.getElementById('menuInput').value.trim();
+  if (!name) { showMsg('menuMsg', '品名を入力してください', false); return; }
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var res = JSON.parse(json);
+      if (res.success) {
+        document.getElementById('menuInput').value = '';
+        renderMenuBoard(res.menu);
+      } else {
+        showMsg('menuMsg', res.error || 'エラーが発生しました', false);
+      }
+    })
+    .apiAddMenuItem(currentCategory, name);
+}
+
+function deleteItem(rowIndex) {
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var res = JSON.parse(json);
+      if (res.success) renderMenuBoard(res.menu);
+    })
+    .apiDeleteMenuItem(rowIndex);
+}
+
+function clearCategory(cat) {
+  if (!confirm(cat + 'のメニューを全部消しますか？')) return;
+  google.script.run
+    .withSuccessHandler(function(json) {
+      loadMenu();
+    })
+    .apiClearMenu(); // 全消し（カテゴリ別は拡張時）
+}
+
+function loadMenu() {
+  google.script.run
+    .withSuccessHandler(function(json) {
+      renderMenuBoard(JSON.parse(json));
+    })
+    .apiGetMenu();
+}
+
+function renderMenuBoard(data) {
+  var html = '';
+
+  // メイン
+  html += '<div class="menu-board-section">';
+  html += '<div class="menu-board-label">▍メイン</div>';
+  if (data.main && data.main.length > 0) {
+    data.main.forEach(function(item) {
+      html += '<div class="menu-item-row">' +
+        '<span class="menu-item-name">' + escHtml(item.name) + '</span>' +
+        '<button class="btn-del" onclick="deleteItem(' + item.rowIndex + ')">削除</button>' +
+      '</div>';
+    });
+  } else {
+    html += '<div class="menu-empty">未登録</div>';
+  }
+  html += '</div>';
+
+  // おばんざい
+  html += '<div class="menu-board-section">';
+  html += '<div class="menu-board-label">▍おばんざい</div>';
+  if (data.obanzai && data.obanzai.length > 0) {
+    data.obanzai.forEach(function(item) {
+      html += '<div class="menu-item-row">' +
+        '<span class="menu-item-name">' + escHtml(item.name) + '</span>' +
+        '<button class="btn-del" onclick="deleteItem(' + item.rowIndex + ')">削除</button>' +
+      '</div>';
+    });
+  } else {
+    html += '<div class="menu-empty">未登録</div>';
+  }
+  html += '</div>';
+
+  document.getElementById('menuBoard').innerHTML = html;
+}
+
+// ================================================
+// タブ2: 営業状況
+// ================================================
+var currentStatus = '通常営業';
+
+function loadBusiness() {
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var d = JSON.parse(json);
+      currentStatus = d.status || '通常営業';
+      setStatusUI(currentStatus);
+
+      var to = function(t) { return t ? String(t).substring(0,5) : ''; };
+      document.getElementById('normalOpen').value  = to(d.normalOpen);
+      document.getElementById('normalClose').value = to(d.normalClose);
+      document.getElementById('specialOpen').value  = to(d.specialOpen);
+      document.getElementById('specialClose').value = to(d.specialClose);
+      document.getElementById('specialNote').value  = d.specialNote || '';
+      document.getElementById('waitSlider').value   = d.waitMin || 0;
+      document.getElementById('waitDisplay').textContent = d.waitMin || 0;
+      document.getElementById('hotpepperUrl').value = d.hotpepperUrl || '';
+
+      var sel = document.getElementById('tomorrowPlan');
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === d.tomorrowPlan) { sel.selectedIndex = i; break; }
+      }
+    })
+    .apiGetBusinessStatus();
+}
+
+document.querySelectorAll('.status-option').forEach(function(opt) {
+  opt.addEventListener('click', function() {
+    setStatusUI(opt.dataset.s);
+  });
+});
+
+function setStatusUI(status) {
+  currentStatus = status;
+  document.querySelectorAll('.status-option').forEach(function(o) {
+    o.classList.toggle('active', o.dataset.s === status);
+  });
+  document.getElementById('specialHoursCard').style.display =
+    (status === '特別時間' || status === '貸切') ? 'block' : 'none';
+}
+
+function updateWaitDisplay() {
+  document.getElementById('waitDisplay').textContent = document.getElementById('waitSlider').value;
+}
+
+function saveBusiness() {
+  var params = {
+    status:       currentStatus,
+    normalOpen:   document.getElementById('normalOpen').value,
+    normalClose:  document.getElementById('normalClose').value,
+    specialOpen:  document.getElementById('specialOpen').value,
+    specialClose: document.getElementById('specialClose').value,
+    specialNote:  document.getElementById('specialNote').value,
+    waitMin:      parseInt(document.getElementById('waitSlider').value, 10),
+    hotpepperUrl: document.getElementById('hotpepperUrl').value,
+    tomorrowPlan: document.getElementById('tomorrowPlan').value
+  };
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var res = JSON.parse(json);
+      showMsg('businessMsg', res.success ? '保存しました' : (res.error || 'エラー'), res.success);
+    })
+    .apiUpdateBusinessStatus(JSON.stringify(params));
+}
+
+// ================================================
+// タブ3: 引き継ぎ
+// ================================================
+var handoverRows = [];
+
+function loadHandoverMenu() {
+  google.script.run
+    .withSuccessHandler(function(json) {
+      handoverRows = JSON.parse(json);
+      renderHandoverTable(handoverRows);
+    })
+    .apiGetHandoverMenu();
+}
+
+function generateHandover() {
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var res = JSON.parse(json);
+      if (res.success) {
+        showMsg('handoverGenMsg', '引き継ぎシートを作成しました', true);
+        loadHandoverMenu();
+      }
+    })
+    .apiGenerateHandover();
+}
+
+function renderHandoverTable(rows) {
+  if (!rows || rows.length === 0) {
+    document.getElementById('handoverMenuTable').innerHTML =
+      '<div style="color:#aaa;font-size:0.85rem">引き継ぎデータがありません。上の「作成」ボタンを押してください。</div>';
+    return;
+  }
+
+  var html = '<table class="handover-table"><thead><tr>' +
+    '<th>種別</th><th>品名</th><th>残数</th><th>仕込み</th><th>備考</th>' +
+    '</tr></thead><tbody>';
+
+  rows.forEach(function(row, idx) {
+    html += '<tr>' +
+      '<td style="white-space:nowrap">' + escHtml(row.category) + '</td>' +
+      '<td>' + escHtml(row.name) + '</td>' +
+      '<td><input type="number" id="rem_' + idx + '" value="' + escHtml(row.remaining) + '" min="0" style="width:60px"></td>' +
+      '<td><input type="text" id="prep_' + idx + '" value="' + escHtml(row.needPrep) + '" placeholder="有/無"></td>' +
+      '<td><input type="text" id="note_' + idx + '" value="' + escHtml(row.note) + '" placeholder="備考"></td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('handoverMenuTable').innerHTML = html;
+}
+
+function saveHandoverRows() {
+  var done = 0;
+  if (handoverRows.length === 0) { showMsg('handoverSaveMsg', '保存するデータがありません', false); return; }
+
+  handoverRows.forEach(function(row, idx) {
+    var rem  = document.getElementById('rem_'  + idx) ? document.getElementById('rem_' + idx).value : '';
+    var prep = document.getElementById('prep_' + idx) ? document.getElementById('prep_' + idx).value : '';
+    var note = document.getElementById('note_' + idx) ? document.getElementById('note_' + idx).value : '';
+
+    google.script.run
+      .withSuccessHandler(function() {
+        done++;
+        if (done === handoverRows.length) showMsg('handoverSaveMsg', '保存しました', true);
+      })
+      .apiUpdateHandoverMenuRow(row.rowIndex, rem, prep, note);
+  });
+}
+
+function saveGeneralHandover() {
+  var params = {
+    author:       document.getElementById('handoverAuthor').value,
+    todayStatus:  document.getElementById('handoverTodayStatus').value,
+    note:         document.getElementById('handoverNote').value,
+    prepList:     document.getElementById('handoverPrepList').value
+  };
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var res = JSON.parse(json);
+      if (res.success) {
+        showMsg('handoverGeneralMsg', '引き継ぎを保存しました', true);
+        loadHandoverHistory();
+      }
+    })
+    .apiSaveHandoverGeneral(JSON.stringify(params));
+}
+
+function loadHandoverHistory() {
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var rows = JSON.parse(json);
+      if (!rows || rows.length === 0) {
+        document.getElementById('handoverHistory').innerHTML = '<div style="color:#aaa;font-size:0.85rem">記録がありません</div>';
+        return;
+      }
+      var html = '';
+      rows.forEach(function(r) {
+        html += '<div style="border-bottom:1px solid #f0f0f0;padding:10px 0">' +
+          '<div style="font-size:0.75rem;color:#aaa;margin-bottom:4px">' + escHtml(r.date) + ' 　' + escHtml(r.author) + '</div>' +
+          '<div style="font-size:0.85rem;margin-bottom:4px">' + escHtml(r.todayStatus) + '</div>' +
+          (r.note ? '<div style="font-size:0.82rem;color:#607d8b">申し送り: ' + escHtml(r.note) + '</div>' : '') +
+          (r.prepList ? '<div style="font-size:0.82rem;color:#8d6e63">仕込み: ' + escHtml(r.prepList) + '</div>' : '') +
+          '</div>';
+      });
+      document.getElementById('handoverHistory').innerHTML = html;
+    })
+    .apiGetHandoverGeneral();
+}
+
+// ================================================
+// タブ4: 売上確認
+// ================================================
+function initSales() {
+  var now = new Date();
+  document.getElementById('monthPicker').value =
+    now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+}
+
+function loadTodaySales() {
+  document.getElementById('todaySalesArea').innerHTML = '<div><span class="spinner-sm"></span> 取得中...</div>';
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var d = JSON.parse(json);
+      var html = '';
+      if (d.error) {
+        html = '<div style="color:#e53935">' + escHtml(d.error) + '</div>';
+      } else {
+        html =
+          '<div class="sales-grid">' +
+            '<div class="sales-num-card">' +
+              '<div class="sales-num-label">客数</div>' +
+              '<div class="sales-num-value">' + (d.customerCount||0) + '</div>' +
+              '<div class="sales-num-unit">人</div>' +
+            '</div>' +
+            '<div class="sales-num-card">' +
+              '<div class="sales-num-label">売上</div>' +
+              '<div class="sales-num-value">' + numFmt(d.totalAmount||0) + '</div>' +
+              '<div class="sales-num-unit">円</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="text-align:right;font-size:0.8rem;color:#aaa">' + escHtml(d.date) + '</div>' +
+          '<button class="btn btn-grey" onclick="loadTodaySales()" style="margin-top:10px">再取得</button>';
+      }
+      document.getElementById('todaySalesArea').innerHTML = html;
+    })
+    .withFailureHandler(function(e) {
+      document.getElementById('todaySalesArea').innerHTML = '<div style="color:#e53935">取得失敗: ' + escHtml(String(e)) + '</div>';
+    })
+    .apiGetTodaySales();
+}
+
+function loadMonthlySales() {
+  var ym = document.getElementById('monthPicker').value;
+  document.getElementById('monthlySalesArea').innerHTML = '<div><span class="spinner-sm"></span> 取得中...</div>';
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var d = JSON.parse(json);
+      if (!d.daily || d.daily.length === 0) {
+        document.getElementById('monthlySalesArea').innerHTML = '<div style="color:#aaa">データがありません</div>';
+        return;
+      }
+
+      var html =
+        '<div class="sales-grid" style="margin-bottom:12px">' +
+          '<div class="sales-num-card">' +
+            '<div class="sales-num-label">月間客数</div>' +
+            '<div class="sales-num-value">' + (d.totalCustomers||0) + '</div>' +
+            '<div class="sales-num-unit">人</div>' +
+          '</div>' +
+          '<div class="sales-num-card">' +
+            '<div class="sales-num-label">月間売上</div>' +
+            '<div class="sales-num-value">' + numFmt(d.totalAmount||0) + '</div>' +
+            '<div class="sales-num-unit">円</div>' +
+          '</div>' +
+        '</div>';
+
+      html += '<div style="overflow-x:auto"><table class="monthly-table"><thead><tr>' +
+        '<th>日</th><th>曜日</th><th>客数</th><th>売上（円）</th>' +
+        '</tr></thead><tbody>';
+
+      d.daily.forEach(function(row) {
+        var isSun = row.dayOfWeek === '日';
+        var isSat = row.dayOfWeek === '土';
+        var color = isSun ? 'color:#e53935' : (isSat ? 'color:#1565c0' : '');
+        html += '<tr>' +
+          '<td style="' + color + '">' + row.day + '</td>' +
+          '<td style="' + color + '">' + escHtml(row.dayOfWeek) + '</td>' +
+          '<td>' + (row.customerCount || '-') + '</td>' +
+          '<td>' + (row.totalAmount ? numFmt(row.totalAmount) : '-') + '</td>' +
+          '</tr>';
+      });
+
+      html += '<tr class="monthly-total"><td colspan="2">合計</td><td>' + d.totalCustomers + '</td><td>' + numFmt(d.totalAmount) + '</td></tr>';
+      html += '</tbody></table></div>';
+
+      document.getElementById('monthlySalesArea').innerHTML = html;
+    })
+    .apiGetMonthlySales(ym);
+}
+
+function numFmt(n) {
+  return Math.round(n).toLocaleString('ja-JP');
+}
+
+// ================================================
+// 初期ロード
+// ================================================
+loadMenu();
+</script>
+</body>
+</html>
