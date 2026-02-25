@@ -9,19 +9,37 @@
 //   アクセストークンはキャッシュに保存し、有効期限内は再利用する。
 //
 // 【設定方法】
-//   1. スマレジ開発者ポータル (https://developer.smaregi.jp/) でアプリを作成
-//   2. 「クライアントID」と「クライアントシークレット」を取得
-//   3. 以下の CONTRACT_ID / CLIENT_ID / CLIENT_SECRET を書き換える
+//   GASエディタ → 「プロジェクトの設定」→「スクリプト プロパティ」に以下を登録：
+//     SMAREGI_CONTRACT_ID  : スマレジ契約ID（管理画面URLに表示）
+//     SMAREGI_CLIENT_ID    : クライアントID
+//     SMAREGI_CLIENT_SECRET: クライアントシークレット
+//
+//   または setupSmaregiCredentials() を一度実行して登録することも可能。
 // ============================================================
 
+var _smaregiProps = PropertiesService.getScriptProperties();
 var SMAREGI_CONFIG = {
-  CONTRACT_ID:     'YOUR_CONTRACT_ID',     // ← スマレジ契約ID（管理画面URLに表示）
-  CLIENT_ID:       'YOUR_CLIENT_ID',       // ← クライアントID
-  CLIENT_SECRET:   'YOUR_CLIENT_SECRET',   // ← クライアントシークレット
-  SCOPE:           'pos.transactions:read', // 必要なスコープ（複数なら空白区切り）
-  TOKEN_URL:       'https://id.smaregi.jp/app/{CONTRACT_ID}/token',
-  BASE_URL:        'https://api.smaregi.jp'
+  CONTRACT_ID:   _smaregiProps.getProperty('SMAREGI_CONTRACT_ID')   || '',
+  CLIENT_ID:     _smaregiProps.getProperty('SMAREGI_CLIENT_ID')     || '',
+  CLIENT_SECRET: _smaregiProps.getProperty('SMAREGI_CLIENT_SECRET') || '',
+  SCOPE:         'pos.transactions:read',
+  TOKEN_URL:     'https://id.smaregi.jp/app/{CONTRACT_ID}/token',
+  BASE_URL:      'https://api.smaregi.jp'
 };
+
+/**
+ * スマレジ認証情報をスクリプトプロパティに保存する。
+ * GASエディタから一度だけ手動実行する。
+ * 実行後はこの関数内の値を空欄に戻すこと。
+ */
+function setupSmaregiCredentials() {
+  PropertiesService.getScriptProperties().setProperties({
+    'SMAREGI_CONTRACT_ID':   'ここに契約IDを入力',
+    'SMAREGI_CLIENT_ID':     'ここにクライアントIDを入力',
+    'SMAREGI_CLIENT_SECRET': 'ここにシークレットを入力'
+  });
+  Logger.log('スマレジ認証情報を保存しました');
+}
 
 // ============================================================
 // アクセストークン取得（キャッシュ付き）
