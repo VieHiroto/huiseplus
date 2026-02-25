@@ -2,17 +2,93 @@
 // SmaregiAPI.gs
 // スマレジ フードビジネス API連携
 // ============================================================
+//
+// 【認証の仕組み】
+//   スマレジAPIはOAuth 2.0 クライアントクレデンシャルフローを使用。
+//   クライアントID + クライアントシークレット → アクセストークンを取得 → APIリクエストに使用。
+//   アクセストークンはキャッシュに保存し、有効期限内は再利用する。
+//
+// 【設定方法】
+//   1. スマレジ開発者ポータル (https://developer.smaregi.jp/) でアプリを作成
+//   2. 「クライアントID」と「クライアントシークレット」を取得
+//   3. 以下の CONTRACT_ID / CLIENT_ID / CLIENT_SECRET を書き換える
+// ============================================================
 
 var SMAREGI_CONFIG = {
-  CONTRACT_ID: 'YOUR_CONTRACT_ID',   // ← スマレジ契約ID
-  ACCESS_TOKEN: 'YOUR_ACCESS_TOKEN', // ← アクセストークン
-  BASE_URL: 'https://api.smaregi.jp'
+  CONTRACT_ID:     'YOUR_CONTRACT_ID',     // ← スマレジ契約ID（管理画面URLに表示）
+  CLIENT_ID:       'YOUR_CLIENT_ID',       // ← クライアントID
+  CLIENT_SECRET:   'YOUR_CLIENT_SECRET',   // ← クライアントシークレット
+  SCOPE:           'pos.transactions:read', // 必要なスコープ（複数なら空白区切り）
+  TOKEN_URL:       'https://id.smaregi.jp/app/{CONTRACT_ID}/token',
+  BASE_URL:        'https://api.smaregi.jp'
 };
+
+// ============================================================
+// アクセストークン取得（キャッシュ付き）
+// ============================================================
+
+/**
+ * アクセストークンを取得する。
+ * GASのキャッシュサービスを使って有効期限内は再利用する。
+ */
+function _getAccessToken() {
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get('smaregi_access_token');
+  if (cached) return cached;
+
+  var tokenUrl = SMAREGI_CONFIG.TOKEN_URL.replace('{CONTRACT_ID}', SMAREGI_CONFIG.CONTRACT_ID);
+
+  // Basic認証: Base64(clientId:clientSecret)
+  var credentials = Utilities.base64Encode(
+    SMAREGI_CONFIG.CLIENT_ID + ':' + SMAREGI_CONFIG.CLIENT_SECRET
+  );
+
+  var options = {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Basic ' + credentials,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    payload: 'grant_type=client_credentials&scope=' + encodeURIComponent(SMAREGI_CONFIG.SCOPE),
+    muteHttpExceptions: true
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(tokenUrl, options);
+    var code = response.getResponseCode();
+    var body = JSON.parse(response.getContentText());
+
+    if (code !== 200) {
+      Logger.log('トークン取得エラー: ' + code + ' ' + JSON.stringify(body));
+      return null;
+    }
+
+    var token = body.access_token;
+    // expires_in（秒）の少し手前でキャッシュを切る（最大6時間）
+    var expiresIn = Math.min((body.expires_in || 3600) - 60, 21600);
+    cache.put('smaregi_access_token', token, expiresIn);
+
+    return token;
+  } catch (e) {
+    Logger.log('トークン取得例外: ' + e.message);
+    return null;
+  }
+}
+
+// ============================================================
+// APIリクエスト共通処理
+// ============================================================
 
 /**
  * スマレジAPIリクエスト共通処理
  */
 function _smaregiRequest(endpoint, params) {
+  var token = _getAccessToken();
+  if (!token) {
+    Logger.log('アクセストークンが取得できませんでした');
+    return null;
+  }
+
   var url = SMAREGI_CONFIG.BASE_URL + '/' + SMAREGI_CONFIG.CONTRACT_ID + endpoint;
 
   if (params) {
@@ -25,7 +101,7 @@ function _smaregiRequest(endpoint, params) {
   var options = {
     method: 'GET',
     headers: {
-      'Authorization': 'Bearer ' + SMAREGI_CONFIG.ACCESS_TOKEN,
+      'Authorization': 'Bearer ' + token,
       'Content-Type': 'application/json'
     },
     muteHttpExceptions: true
@@ -34,6 +110,13 @@ function _smaregiRequest(endpoint, params) {
   try {
     var response = UrlFetchApp.fetch(url, options);
     var code = response.getResponseCode();
+
+    if (code === 401) {
+      // トークン期限切れの場合はキャッシュを削除して再試行
+      CacheService.getScriptCache().remove('smaregi_access_token');
+      Logger.log('トークン期限切れ。再取得してください。');
+      return null;
+    }
 
     if (code !== 200) {
       Logger.log('Smaregi APIエラー: ' + code + ' ' + response.getContentText());
