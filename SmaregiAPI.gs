@@ -142,8 +142,8 @@ function getTodaySales() {
   var today = _formatDate(new Date());
 
   var data = _smaregiRequest('/pos/transactions', {
-    sum_date_from: today,
-    sum_date_to: today,
+    'sum_date-from': today,
+    'sum_date-to': today,
     limit: 1000
   });
 
@@ -193,8 +193,8 @@ function getMonthlySales(yearMonth) {
   var toDate = yearMonth + '-' + _pad(lastDay);
 
   var data = _smaregiRequest('/pos/transactions', {
-    sum_date_from: fromDate,
-    sum_date_to: toDate,
+    'sum_date-from': fromDate,
+    'sum_date-to': toDate,
     limit: 9999
   });
 
@@ -317,7 +317,9 @@ function testSmaregiConnection() {
   Logger.log('✅ トークン取得成功: ' + token.substring(0, 20) + '...');
 
   // 2. 取引一覧API テスト
-  var apiUrl = SMAREGI_CONFIG.BASE_URL + '/' + SMAREGI_CONFIG.CONTRACT_ID + '/pos/transactions?limit=1';
+  var today = _formatDate(new Date());
+  var apiUrl = SMAREGI_CONFIG.BASE_URL + '/' + SMAREGI_CONFIG.CONTRACT_ID +
+    '/pos/transactions?sum_date-from=' + today + '&sum_date-to=' + today + '&limit=1';
   Logger.log('\n[2] APIリクエストURL: ' + apiUrl);
 
   var response = UrlFetchApp.fetch(apiUrl, {
