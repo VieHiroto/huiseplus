@@ -291,3 +291,52 @@ function _formatDate(date) {
 function _pad(n) {
   return n < 10 ? '0' + n : String(n);
 }
+
+// ============================================================
+// デバッグ用テスト関数（GASエディタから手動実行）
+// ============================================================
+
+/**
+ * 接続テスト。GASエディタで「testSmaregiConnection」を選択して実行し、
+ * ログ（表示 → ログ）で結果を確認する。
+ */
+function testSmaregiConnection() {
+  Logger.log('=== スマレジ接続テスト開始 ===');
+  Logger.log('CONTRACT_ID: ' + SMAREGI_CONFIG.CONTRACT_ID);
+  Logger.log('CLIENT_ID:   ' + SMAREGI_CONFIG.CLIENT_ID);
+
+  // 1. トークン取得テスト
+  var tokenUrl = SMAREGI_CONFIG.TOKEN_URL.replace('{CONTRACT_ID}', SMAREGI_CONFIG.CONTRACT_ID);
+  Logger.log('\n[1] トークン取得URL: ' + tokenUrl);
+
+  var token = _getAccessToken();
+  if (!token) {
+    Logger.log('❌ トークン取得失敗。CLIENT_ID / CLIENT_SECRET / CONTRACT_ID を確認してください。');
+    return;
+  }
+  Logger.log('✅ トークン取得成功: ' + token.substring(0, 20) + '...');
+
+  // 2. 取引一覧API テスト
+  var apiUrl = SMAREGI_CONFIG.BASE_URL + '/' + SMAREGI_CONFIG.CONTRACT_ID + '/pos/transactions?limit=1';
+  Logger.log('\n[2] APIリクエストURL: ' + apiUrl);
+
+  var response = UrlFetchApp.fetch(apiUrl, {
+    method: 'GET',
+    headers: { 'Authorization': 'Bearer ' + token },
+    muteHttpExceptions: true
+  });
+
+  Logger.log('レスポンスコード: ' + response.getResponseCode());
+  Logger.log('レスポンス本文: ' + response.getContentText().substring(0, 500));
+
+  if (response.getResponseCode() === 404) {
+    Logger.log('\n⚠ 404の主な原因:');
+    Logger.log('  ① CONTRACT_IDが間違っている');
+    Logger.log('     → 現在の値: ' + SMAREGI_CONFIG.CONTRACT_ID);
+    Logger.log('     → スマレジ管理画面のURLに表示される英数字（例: T0000001）');
+    Logger.log('  ② アプリのスコープが不足している');
+    Logger.log('     → 開発者ポータルで「pos.transactions:read」を許可しているか確認');
+  }
+
+  Logger.log('\n=== テスト完了 ===');
+}
