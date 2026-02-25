@@ -317,6 +317,11 @@ function testDailySummaries() {
   // パターンB: sum_date 単日（今日）
   var resB = _smaregiRequest('/pos/daily_summaries', { 'sum_date': today, limit: 10 });
   Logger.log('[B] sum_date=' + today + ' → ' + (resB === null ? 'null(APIエラー)' : JSON.stringify(resB).substring(0, 200)));
+  // フィールド名確認（customerCount / transactionCount の特定）
+  if (resB && resB.length > 0) {
+    Logger.log('[B] フィールド一覧: ' + Object.keys(resB[0]).join(', '));
+    Logger.log('[B] 1件目フルデータ: ' + JSON.stringify(resB[0]));
+  }
 
   // パターンC: パラメータなし（全件先頭10件）
   var resC = _smaregiRequest('/pos/daily_summaries', { limit: 10 });
