@@ -306,8 +306,8 @@ function testSmaregiConnection() {
   Logger.log('CLIENT_ID:   ' + SMAREGI_CONFIG.CLIENT_ID);
 
   // 1. トークン取得テスト
-  var tokenUrl = SMAREGI_CONFIG.TOKEN_URL.replace('{CONTRACT_ID}', SMAREGI_CONFIG.CONTRACT_ID);
-  Logger.log('\n[1] トークン取得URL: ' + tokenUrl);
+  Logger.log('\n[1] トークン取得URL: ' +
+    SMAREGI_CONFIG.TOKEN_URL.replace('{CONTRACT_ID}', SMAREGI_CONFIG.CONTRACT_ID));
 
   var token = _getAccessToken();
   if (!token) {
@@ -316,29 +316,30 @@ function testSmaregiConnection() {
   }
   Logger.log('✅ トークン取得成功: ' + token.substring(0, 20) + '...');
 
-  // 2. 取引一覧API テスト
-  var today = _formatDate(new Date());
-  var apiUrl = SMAREGI_CONFIG.BASE_URL + '/' + SMAREGI_CONFIG.CONTRACT_ID +
-    '/pos/transactions?sum_date-from=' + today + '&sum_date-to=' + today + '&limit=1';
-  Logger.log('\n[2] APIリクエストURL: ' + apiUrl);
+  var base = SMAREGI_CONFIG.BASE_URL + '/' + SMAREGI_CONFIG.CONTRACT_ID;
+  var opts = { method: 'GET', headers: { 'Authorization': 'Bearer ' + token }, muteHttpExceptions: true };
 
-  var response = UrlFetchApp.fetch(apiUrl, {
-    method: 'GET',
-    headers: { 'Authorization': 'Bearer ' + token },
-    muteHttpExceptions: true
-  });
+  // 2. YYYY-MM-DD フォーマットで試行
+  var today     = _formatDate(new Date());               // 例: 2025-03-01
+  var todayYMD  = today.replace(/-/g, '');               // 例: 20250301
 
-  Logger.log('レスポンスコード: ' + response.getResponseCode());
-  Logger.log('レスポンス本文: ' + response.getContentText().substring(0, 500));
+  var url1 = base + '/pos/transactions?sum_date-from=' + today + '&sum_date-to=' + today + '&limit=1';
+  Logger.log('\n[2a] YYYY-MM-DD フォーマット: ' + url1);
+  var r1 = UrlFetchApp.fetch(url1, opts);
+  Logger.log('  → ' + r1.getResponseCode() + ' ' + r1.getContentText().substring(0, 200));
 
-  if (response.getResponseCode() === 404) {
-    Logger.log('\n⚠ 404の主な原因:');
-    Logger.log('  ① CONTRACT_IDが間違っている');
-    Logger.log('     → 現在の値: ' + SMAREGI_CONFIG.CONTRACT_ID);
-    Logger.log('     → スマレジ管理画面のURLに表示される英数字（例: T0000001）');
-    Logger.log('  ② アプリのスコープが不足している');
-    Logger.log('     → 開発者ポータルで「pos.transactions:read」を許可しているか確認');
-  }
+  // 3. YYYYMMDD フォーマットで試行
+  var url2 = base + '/pos/transactions?sum_date-from=' + todayYMD + '&sum_date-to=' + todayYMD + '&limit=1';
+  Logger.log('\n[2b] YYYYMMDD フォーマット: ' + url2);
+  var r2 = UrlFetchApp.fetch(url2, opts);
+  Logger.log('  → ' + r2.getResponseCode() + ' ' + r2.getContentText().substring(0, 200));
+
+  // 4. transaction_date_time-from フォーマットで試行
+  var url3 = base + '/pos/transactions?transaction_date_time-from=' + today + '+00:00:00' +
+    '&transaction_date_time-to=' + today + '+23:59:59&limit=1';
+  Logger.log('\n[2c] transaction_date_time フォーマット: ' + url3);
+  var r3 = UrlFetchApp.fetch(url3, opts);
+  Logger.log('  → ' + r3.getResponseCode() + ' ' + r3.getContentText().substring(0, 200));
 
   Logger.log('\n=== テスト完了 ===');
 }
