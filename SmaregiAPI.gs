@@ -174,9 +174,10 @@ function getTodaySales() {
 }
 
 /**
- * 指定月の日別売上を取得
+ * 指定月の日別売上を /daily_summaries から取得
+ * （締め処理済みの日のみ。当日分は getTodaySales を使うこと）
  * @param {string} yearMonth - 'YYYY-MM' 形式
- * @returns {Array} [{ date, dayOfWeek, customerCount, totalAmount }, ...]
+ * @returns {Array} [{ date, day, dayOfWeek, customerCount, totalAmount }, ...]
  */
 function getMonthlySales(yearMonth) {
   if (!yearMonth) {
@@ -185,63 +186,111 @@ function getMonthlySales(yearMonth) {
   }
 
   var parts = yearMonth.split('-');
-  var year = parseInt(parts[0], 10);
+  var year  = parseInt(parts[0], 10);
   var month = parseInt(parts[1], 10);
 
   var fromDate = yearMonth + '-01';
-  var lastDay = new Date(year, month, 0).getDate();
-  var toDate = yearMonth + '-' + _pad(lastDay);
+  var lastDay  = new Date(year, month, 0).getDate();
+  var toDate   = yearMonth + '-' + _pad(lastDay);
 
-  var data = _smaregiRequest('/pos/transactions', {
+  var data = _smaregiRequest('/pos/daily_summaries', {
     'sum_date-from': fromDate,
-    'sum_date-to': toDate,
-    limit: 9999
+    'sum_date-to':   toDate,
+    sort:  'sumDate',
+    limit: 100        // 月最大31日なので100で十分
   });
 
-  if (!data) {
-    return [];
-  }
+  if (!data) return [];
 
-  var transactions = Array.isArray(data) ? data : (data.result || []);
+  var summaries = Array.isArray(data) ? data : (data.result || []);
 
-  // 日付ごとに集計
+  // 同日に複数ドロアがある場合を考慮して日付ごとに合算
   var dailyMap = {};
-  transactions.forEach(function(t) {
-    // キャンセル・返品を除外（Smaregi APIはcancelDivision: '1'）
-    if (t.cancelDivision === '1' || t.cancel_flg === '1') return;
-
-    // sumDate（キャメルケース）またはフォールバックでtransactionDateTimeから日付取得
-    var sumDate = (t.sumDate || t.sum_date ||
-      (t.transactionDateTime || t.transaction_date || '').substring(0, 10)
-    ).substring(0, 10);
-    if (!sumDate) return;
-
-    if (!dailyMap[sumDate]) {
-      dailyMap[sumDate] = { customerCount: 0, totalAmount: 0 };
-    }
-    dailyMap[sumDate].totalAmount += parseFloat(t.total || t.subtotal || t.unitNonDiscountsubtotal || 0);
-    dailyMap[sumDate].customerCount += parseInt(t.customerCount || t.customer_count || 1, 10);
+  summaries.forEach(function(s) {
+    var date = (s.sumDate || '').substring(0, 10);
+    if (!date) return;
+    if (!dailyMap[date]) dailyMap[date] = { customerCount: 0, totalAmount: 0 };
+    dailyMap[date].totalAmount    += parseFloat(s.total      || s.salesTotal || 0);
+    dailyMap[date].customerCount  += parseInt(s.transactionCount || 0, 10);
   });
 
-  var DOW = ['日', '月', '火', '水', '木', '金', '土'];
+  var DOW    = ['日', '月', '火', '水', '木', '金', '土'];
   var result = [];
   for (var day = 1; day <= lastDay; day++) {
     var dateStr = yearMonth + '-' + _pad(day);
-    var d = dailyMap[dateStr] || { customerCount: 0, totalAmount: 0 };
+    var d   = dailyMap[dateStr] || { customerCount: 0, totalAmount: 0 };
     var dow = DOW[new Date(dateStr).getDay()];
     result.push({
-      date: dateStr,
-      day: day,
-      dayOfWeek: dow,
+      date:          dateStr,
+      day:           day,
+      dayOfWeek:     dow,
       customerCount: d.customerCount,
-      totalAmount: d.totalAmount
+      totalAmount:   d.totalAmount
     });
   }
 
-  // 月売上シートに保存
   _saveMonthlySales(yearMonth, result);
-
   return result;
+}
+
+// ============================================================
+// 自動同期（毎日0時トリガー用）
+// ============================================================
+
+/**
+ * 前日分の日次締め情報を取得してシートに保存する。
+ * GASのトリガーで毎日0時前後に実行する。
+ */
+function autoSyncDailySummary() {
+  var yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  var dateStr = _formatDate(yesterday);
+
+  var data = _smaregiRequest('/pos/daily_summaries', {
+    'sum_date': dateStr,
+    limit: 100
+  });
+
+  if (!data) {
+    Logger.log('autoSyncDailySummary: APIエラー（' + dateStr + '）');
+    return;
+  }
+
+  var summaries = Array.isArray(data) ? data : (data.result || []);
+  if (summaries.length === 0) {
+    Logger.log('autoSyncDailySummary: データなし（' + dateStr + '）締め処理未実施の可能性');
+    return;
+  }
+
+  var totalAmount   = 0;
+  var customerCount = 0;
+  summaries.forEach(function(s) {
+    totalAmount   += parseFloat(s.total || s.salesTotal || 0);
+    customerCount += parseInt(s.transactionCount || 0, 10);
+  });
+
+  _saveDailySales(dateStr, customerCount, totalAmount);
+  Logger.log('autoSyncDailySummary: 保存完了 ' + dateStr +
+    ' 客数=' + customerCount + ' 売上=' + totalAmount);
+}
+
+/**
+ * 毎日0時トリガーをセットアップする。
+ * GASエディタから一度だけ手動実行する。
+ */
+function setupDailyTrigger() {
+  // 既存の同名トリガーを削除してから登録（重複防止）
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'autoSyncDailySummary') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  ScriptApp.newTrigger('autoSyncDailySummary')
+    .timeBased()
+    .atHour(0)
+    .everyDays(1)
+    .create();
+  Logger.log('トリガー登録完了: autoSyncDailySummary（毎日0時）');
 }
 
 // ============================================================
