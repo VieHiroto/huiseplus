@@ -234,6 +234,78 @@ function getDeletedObanzaiToday() {
 }
 
 // ============================================================
+// 朝の確認シート用
+// ============================================================
+
+/**
+ * 引き継ぎ_夜 の最新行（前日夜）を取得
+ */
+function getLastNightHandover() {
+  var sheet = getSheet(SHEET_NAMES.HANDOVER_NIGHT);
+  if (!sheet) return null;
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
+
+  var row = sheet.getRange(lastRow, 1, 1, 9).getValues()[0];
+  var mainSoldOut = [], obanzaiCarryOver = [], completedIds = [];
+  try { mainSoldOut      = JSON.parse(String(row[5] || '[]')); } catch (e) {}
+  try { obanzaiCarryOver = JSON.parse(String(row[6] || '[]')); } catch (e) {}
+  try { completedIds     = JSON.parse(String(row[7] || '[]')); } catch (e) {}
+
+  return {
+    date:             String(row[0] || ''),
+    floor2:           row[1] === true || row[1] === 'TRUE',
+    floor3:           row[2] === true || row[2] === 'TRUE',
+    toilet3:          row[3] === true || row[3] === 'TRUE',
+    toilet2:          row[4] === true || row[4] === 'TRUE',
+    mainSoldOut:      mainSoldOut,
+    obanzaiCarryOver: obanzaiCarryOver,
+    completedIds:     completedIds,
+    notes:            String(row[8] || '')
+  };
+}
+
+/**
+ * 朝の確認シート用データ（前夜引き継ぎ＋宿題マスタ）を返す
+ */
+function getMorningCheckData() {
+  var night = getLastNightHandover();
+  var hw = getHomeworkMaster();
+
+  if (!night) {
+    return { hasNight: false, hwMaster: hw };
+  }
+
+  // 同じ日付の昼データを取得（未完了宿題の計算用）
+  var dayActiveIds = [];
+  var daySheet = getSheet(SHEET_NAMES.HANDOVER_DAY);
+  if (daySheet) {
+    var dayValues = daySheet.getDataRange().getValues();
+    for (var i = 1; i < dayValues.length; i++) {
+      if (String(dayValues[i][0]).substring(0, 10) === night.date) {
+        try { dayActiveIds = JSON.parse(String(dayValues[i][1] || '[]')); } catch (e) {}
+        break;
+      }
+    }
+  }
+
+  return {
+    hasNight:         true,
+    nightDate:        night.date,
+    floor2:           night.floor2,
+    floor3:           night.floor3,
+    toilet3:          night.toilet3,
+    toilet2:          night.toilet2,
+    mainSoldOut:      night.mainSoldOut,
+    obanzaiCarryOver: night.obanzaiCarryOver.filter(function(o) { return o.carryOver; }),
+    completedIds:     night.completedIds,
+    dayActiveIds:     dayActiveIds,
+    hwMaster:         hw,
+    notes:            night.notes
+  };
+}
+
+// ============================================================
 // ユーティリティ
 // ============================================================
 

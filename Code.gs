@@ -126,3 +126,8 @@ function apiGetNightHandoverToday() {
 function apiGetDeletedObanzaiToday() {
   return JSON.stringify(getDeletedObanzaiToday());
 }
+
+/** [スタッフ] 朝の確認データ取得（前夜引き継ぎ＋宿題） */
+function apiGetMorningCheckData() {
+  return JSON.stringify(getMorningCheckData());
+}

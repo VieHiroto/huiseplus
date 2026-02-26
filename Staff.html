@@ -555,6 +555,55 @@
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- 朝の確認 清掃ステータス ---- */
+    .clean-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .clean-status.done {
+      background: #e8f5e9;
+      color: #2e7d32;
+      font-weight: bold;
+    }
+
+    .morning-tag {
+      display: inline-block;
+      background: #ffebee;
+      color: #c62828;
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: 0.82rem;
+      margin: 2px;
+    }
+
+    .morning-tag-teal {
+      display: inline-block;
+      background: #e0f2f1;
+      color: #00695c;
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: 0.82rem;
+      margin: 2px;
+    }
+
+    .morning-hw-item {
+      padding: 7px 4px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.88rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .morning-hw-item:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
@@ -564,6 +613,7 @@
   <nav>
     <div class="nav-btn active" data-tab="menu">メニュー</div>
     <div class="nav-btn" data-tab="business">営業状況</div>
+    <div class="nav-btn" data-tab="morning">朝確認</div>
     <div class="nav-btn" data-tab="handover-day">引継【昼】</div>
     <div class="nav-btn" data-tab="handover-night">引継【夜】</div>
     <div class="nav-btn" data-tab="sales">売上確認</div>
@@ -614,6 +664,25 @@
       <div class="spinner-sm"></div> 読み込み中...
     </div>
   </div>
+</div>
+
+<!-- ====================================================
+     タブ: 朝の確認
+==================================================== -->
+<div class="tab-panel" id="tab-morning">
+
+  <!-- 前夜の引き継ぎ -->
+  <div class="card">
+    <div class="card-title" id="morningNightTitle">前夜の引き継ぎ</div>
+    <div id="morningNightContent"><span class="spinner-sm"></span> 読み込み中...</div>
+  </div>
+
+  <!-- 本日のメニュー残量 -->
+  <div class="card">
+    <div class="card-title">本日のメニュー残量</div>
+    <div id="morningMenuBoard"><span class="spinner-sm"></span> 読み込み中...</div>
+  </div>
+
 </div>
 
 <!-- ====================================================
@@ -800,13 +869,172 @@ document.querySelectorAll('.nav-btn').forEach(function(btn) {
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
 
-    if (btn.dataset.tab === 'menu')          loadMenu();
-    if (btn.dataset.tab === 'business')      loadBusiness();
-    if (btn.dataset.tab === 'handover-day')  loadHandoverDay();
+    if (btn.dataset.tab === 'menu')           loadMenu();
+    if (btn.dataset.tab === 'morning')        loadMorning();
+    if (btn.dataset.tab === 'business')       loadBusiness();
+    if (btn.dataset.tab === 'handover-day')   loadHandoverDay();
     if (btn.dataset.tab === 'handover-night') loadHandoverNight();
-    if (btn.dataset.tab === 'sales')         initSales();
+    if (btn.dataset.tab === 'sales')          initSales();
   });
 });
+
+// ================================================
+// タブ: 朝の確認
+// ================================================
+function loadMorning() {
+  document.getElementById('morningNightContent').innerHTML = '<span class="spinner-sm"></span> 読み込み中...';
+  document.getElementById('morningMenuBoard').innerHTML    = '<span class="spinner-sm"></span> 読み込み中...';
+
+  google.script.run
+    .withSuccessHandler(function(json) { renderMorningNight(JSON.parse(json)); })
+    .withFailureHandler(function(e) {
+      document.getElementById('morningNightContent').innerHTML = '<div style="color:#e53935">読み込みエラー: ' + escHtml(String(e)) + '</div>';
+    })
+    .apiGetMorningCheckData();
+
+  google.script.run
+    .withSuccessHandler(function(json) { renderMorningMenu(JSON.parse(json)); })
+    .withFailureHandler(function(e) {
+      document.getElementById('morningMenuBoard').innerHTML = '<div style="color:#e53935">読み込みエラー: ' + escHtml(String(e)) + '</div>';
+    })
+    .apiGetMenu();
+}
+
+function renderMorningNight(data) {
+  if (!data.hasNight) {
+    document.getElementById('morningNightContent').innerHTML =
+      '<div style="color:#aaa;font-size:0.88rem">前夜の引き継ぎデータがありません</div>';
+    return;
+  }
+
+  document.getElementById('morningNightTitle').textContent = '前夜の引き継ぎ（' + data.nightDate + '）';
+
+  var html = '';
+
+  // 清掃状況
+  html += '<div class="sub-section-label">清掃状況</div>';
+  html += '<div class="cleaning-grid" style="margin-bottom:14px">';
+  [
+    { label: '2回フロア掃除', done: data.floor2  },
+    { label: '3回フロア掃除', done: data.floor3  },
+    { label: '3回トイレ',     done: data.toilet3 },
+    { label: '2回トイレ',     done: data.toilet2 }
+  ].forEach(function(c) {
+    html += '<div class="clean-status' + (c.done ? ' done' : '') + '">' +
+      (c.done ? '✓ ' : '✗ ') + escHtml(c.label) + '</div>';
+  });
+  html += '</div>';
+
+  // 無くなったメイン
+  if (data.mainSoldOut && data.mainSoldOut.length > 0) {
+    html += '<div class="sub-section-label">無くなったメイン</div>';
+    html += '<div style="margin-bottom:12px">';
+    data.mainSoldOut.forEach(function(name) {
+      html += '<span class="morning-tag">' + escHtml(name) + '</span>';
+    });
+    html += '</div>';
+  }
+
+  // 引き継ぐおばんざい（carryOver=true のもの）
+  if (data.obanzaiCarryOver && data.obanzaiCarryOver.length > 0) {
+    html += '<div class="sub-section-label">引き継ぐおばんざい（昨日削除）</div>';
+    html += '<div style="margin-bottom:12px">';
+    data.obanzaiCarryOver.forEach(function(o) {
+      html += '<span class="morning-tag-teal">' + escHtml(o.name) + '</span>';
+    });
+    html += '</div>';
+  }
+
+  // 未完了の宿題
+  var dayActiveIds  = data.dayActiveIds || [];
+  var completedIds  = data.completedIds || [];
+  var hwMaster      = data.hwMaster     || [];
+  var uncompleted   = hwMaster.filter(function(h) {
+    return dayActiveIds.indexOf(h.rowIndex) !== -1 && completedIds.indexOf(h.rowIndex) === -1;
+  });
+  if (uncompleted.length > 0) {
+    html += '<div class="sub-section-label" style="color:#e65100">未完了の宿題</div>';
+    uncompleted.forEach(function(h) {
+      html += '<div class="morning-hw-item">' +
+        '<span class="hw-cat-tag">' + escHtml(h.category) + '</span>' +
+        escHtml(h.content) + '</div>';
+    });
+    html += '<div style="margin-bottom:10px"></div>';
+  }
+
+  // 備考
+  if (data.notes) {
+    html += '<div class="sub-section-label">備考</div>';
+    html += '<div style="font-size:0.88rem;color:#37474f;white-space:pre-line;padding:6px 0;border-top:1px solid #f0f0f0">' +
+      escHtml(data.notes) + '</div>';
+  }
+
+  if (!html) html = '<div style="color:#aaa;font-size:0.88rem">記録がありません</div>';
+  document.getElementById('morningNightContent').innerHTML = html;
+}
+
+function renderMorningMenu(data) {
+  if (data.isClosed) {
+    document.getElementById('morningMenuBoard').innerHTML = '<div style="color:#aaa">本日は休業日です</div>';
+    return;
+  }
+
+  var html = '';
+
+  // メイン
+  html += '<div class="menu-board-label">▍メイン</div>';
+  if (data.main && data.main.length > 0) {
+    var grouped = {};
+    data.main.forEach(function(item) {
+      var sub = item.subCategory || '（未分類）';
+      if (!grouped[sub]) grouped[sub] = [];
+      grouped[sub].push(item);
+    });
+    var orderedSubs = SUB_CAT_ORDER_STAFF.filter(function(s) { return grouped[s]; });
+    Object.keys(grouped).forEach(function(s) {
+      if (orderedSubs.indexOf(s) === -1) orderedSubs.push(s);
+    });
+    orderedSubs.forEach(function(sub) {
+      html += '<div style="font-size:0.72rem;color:#8d6e63;margin:8px 0 4px;font-weight:bold">' + escHtml(sub) + '</div>';
+      grouped[sub].forEach(function(item) { html += buildMorningStockRow(item); });
+    });
+  } else {
+    html += '<div class="menu-empty">未登録</div>';
+  }
+
+  // おばんざい
+  html += '<div class="menu-board-label" style="margin-top:14px">▍おばんざい</div>';
+  if (data.obanzai && data.obanzai.length > 0) {
+    data.obanzai.forEach(function(item) { html += buildMorningStockRow(item); });
+  } else {
+    html += '<div class="menu-empty">未登録</div>';
+  }
+
+  document.getElementById('morningMenuBoard').innerHTML = html;
+}
+
+function buildMorningStockRow(item) {
+  var ri = item.rowIndex;
+  var stocks = ['ある', '少し', 'ない'];
+  var stockBtns = stocks.map(function(s) {
+    var activeClass = item.stock === s ? ' active-' + s : '';
+    return '<button class="stock-btn' + activeClass + '" onclick="updateMorningStock(' + ri + ',\'' + s + '\')">' + s + '</button>';
+  }).join('');
+
+  return '<div class="menu-item-row">' +
+    '<div class="menu-item-top"><span class="menu-item-name">' + escHtml(item.name) + '</span></div>' +
+    '<div class="menu-item-actions">' + stockBtns + '</div>' +
+  '</div>';
+}
+
+function updateMorningStock(rowIndex, stock) {
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var res = JSON.parse(json);
+      if (res.success) renderMorningMenu(res.menu);
+    })
+    .apiUpdateMenuItemStock(rowIndex, stock);
+}
 
 // ================================================
 // タブ1: メニュー
