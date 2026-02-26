@@ -346,31 +346,163 @@
       background: #e8f5e9;
     }
 
-    /* ---- 引き継ぎ ---- */
-    .handover-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
+    /* ---- 引き継ぎ（昼・夜共通） ---- */
+    .hw-category { margin-bottom: 18px; }
+
+    .hw-cat-label {
+      font-size: 0.78rem;
+      font-weight: bold;
+      color: #8d6e63;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #efebe9;
     }
 
-    .handover-table th {
-      background: #eceff1;
-      padding: 7px 8px;
-      text-align: left;
-      font-size: 0.8rem;
-      color: #546e7a;
+    .hw-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 4px;
+      border-bottom: 1px solid #f5f5f5;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .hw-item:last-child { border-bottom: none; }
+
+    .hw-item input[type=checkbox] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      margin-bottom: 0;
+      border: none;
+      flex-shrink: 0;
+    }
+
+    .hw-cat-tag {
+      font-size: 0.7rem;
+      background: #e8f5e9;
+      color: #2e7d32;
+      border-radius: 10px;
+      padding: 1px 8px;
+      margin-left: 6px;
       white-space: nowrap;
     }
 
-    .handover-table td {
-      padding: 6px 8px;
-      border-bottom: 1px solid #f0f0f0;
+    .hw-section-title {
+      font-size: 0.82rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+      margin-top: 4px;
     }
 
-    .handover-table input[type=text], .handover-table input[type=number] {
+    .hw-done-text {
+      text-decoration: line-through;
+      color: #aaa;
+    }
+
+    /* ---- 清掃状況 ---- */
+    .cleaning-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 10px 12px;
+      border: 2px solid #cfd8dc;
+      border-radius: 8px;
+      transition: all 0.15s;
+    }
+
+    .check-row input[type=checkbox] {
+      width: 18px;
+      height: 18px;
       margin-bottom: 0;
-      padding: 4px 6px;
+      border: none;
+      flex-shrink: 0;
+    }
+
+    .check-row.is-checked {
+      background: #e8f5e9;
+      border-color: #66bb6a;
+      font-weight: bold;
+    }
+
+    /* ---- おばんざい引き継ぎ ---- */
+    .obanzai-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 4px;
+      border-bottom: 1px solid #f0f0f0;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .obanzai-item:last-child { border-bottom: none; }
+
+    .obanzai-name { font-size: 0.9rem; flex: 1; }
+
+    .carry-toggle { display: flex; gap: 4px; }
+
+    .carry-btn {
+      padding: 4px 14px;
+      border-radius: 14px;
+      border: 1px solid #cfd8dc;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: #607d8b;
+      background: #fff;
+      transition: all 0.15s;
+    }
+
+    .carry-btn.active {
+      background: #37474f;
+      color: #fff;
+      border-color: #37474f;
+    }
+
+    .carry-btn.active-yes { background: #009688; border-color: #009688; color: #fff; }
+    .carry-btn.active-no  { background: #90a4ae; border-color: #90a4ae; color: #fff; }
+
+    /* ---- メイン売切タグ ---- */
+    .sold-out-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+
+    .sold-out-tag {
+      display: inline-flex;
+      align-items: center;
+      background: #ffebee;
+      color: #c62828;
+      border-radius: 12px;
+      padding: 4px 10px;
       font-size: 0.82rem;
+      gap: 4px;
+    }
+
+    .sold-out-tag button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #e53935;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0;
+    }
+
+    /* ---- サブセクションラベル ---- */
+    .sub-section-label {
+      font-size: 0.78rem;
+      font-weight: bold;
+      color: #546e7a;
+      margin-bottom: 8px;
+      margin-top: 4px;
     }
 
     /* ---- 営業状況 ---- */
@@ -432,7 +564,8 @@
   <nav>
     <div class="nav-btn active" data-tab="menu">メニュー</div>
     <div class="nav-btn" data-tab="business">営業状況</div>
-    <div class="nav-btn" data-tab="handover">引き継ぎ</div>
+    <div class="nav-btn" data-tab="handover-day">引継【昼】</div>
+    <div class="nav-btn" data-tab="handover-night">引継【夜】</div>
     <div class="nav-btn" data-tab="sales">売上確認</div>
   </nav>
 </header>
@@ -534,36 +667,93 @@
 </div>
 
 <!-- ====================================================
-     タブ3: 引き継ぎ
+     タブ3: 引き継ぎ資料【昼】
 ==================================================== -->
-<div class="tab-panel" id="tab-handover">
+<div class="tab-panel" id="tab-handover-day">
 
   <div class="card">
-    <div class="card-title">メニュー引き継ぎ（残数・仕込み）</div>
-    <button class="btn btn-amber" onclick="generateHandover()">メニューから引き継ぎシートを作成</button>
-    <div class="msg" id="handoverGenMsg"></div>
-    <div id="handoverMenuTable" style="margin-top:14px; overflow-x:auto;"></div>
-    <button class="btn btn-teal" onclick="saveHandoverRows()" style="margin-top:10px">保存する</button>
-    <div class="msg" id="handoverSaveMsg"></div>
+    <div class="card-title">宿題リスト</div>
+    <div id="homeworkList"><span class="spinner-sm"></span> 読み込み中...</div>
   </div>
 
   <div class="card">
-    <div class="card-title">通常引き継ぎ記録</div>
-    <label>記録者名</label>
-    <input type="text" id="handoverAuthor" placeholder="山田">
-    <label>本日の状況</label>
-    <textarea id="handoverTodayStatus" placeholder="例：18:00から満席で待ちが発生。19:30に解消。"></textarea>
-    <label>明日への申し送り</label>
-    <textarea id="handoverNote" placeholder="例：鮮魚の仕込みを早めに、週末予約が2件あり。"></textarea>
-    <label>仕込み一覧</label>
-    <textarea id="handoverPrepList" placeholder="例：だし汁、煮物、漬物3種"></textarea>
-    <button class="btn btn-primary" onclick="saveGeneralHandover()">記録を保存</button>
-    <div class="msg" id="handoverGeneralMsg"></div>
+    <div class="card-title">新しい宿題を追加</div>
+    <label>カテゴリ</label>
+    <select id="newHwCategory">
+      <option value="仕込み">仕込み</option>
+      <option value="発注">発注</option>
+      <option value="掃除">掃除</option>
+      <option value="その他">その他</option>
+    </select>
+    <label>内容</label>
+    <input type="text" id="newHwContent" placeholder="例：だし汁を仕込む">
+    <button class="btn btn-teal" onclick="addHomework()" style="width:100%">追加する</button>
+    <div class="msg" id="hwAddMsg"></div>
   </div>
 
   <div class="card">
-    <div class="card-title">過去の引き継ぎ記録</div>
-    <div id="handoverHistory">読み込み中...</div>
+    <div class="card-title">備考</div>
+    <textarea id="dayHandoverNotes" placeholder="引き継ぎ事項・申し送りなど" style="min-height:90px"></textarea>
+    <button class="btn btn-primary" onclick="saveDayHandover()" style="width:100%">保存する</button>
+    <div class="msg" id="dayHandoverMsg"></div>
+  </div>
+</div>
+
+<!-- ====================================================
+     タブ4: 引き継ぎ資料【夜】
+==================================================== -->
+<div class="tab-panel" id="tab-handover-night">
+
+  <!-- 清掃状況 -->
+  <div class="card">
+    <div class="card-title">清掃状況</div>
+    <div class="cleaning-grid">
+      <label class="check-row" id="lbl-floor2">
+        <input type="checkbox" id="floor2" onchange="toggleCheckRow('lbl-floor2',this.checked)">
+        2回フロア掃除
+      </label>
+      <label class="check-row" id="lbl-floor3">
+        <input type="checkbox" id="floor3" onchange="toggleCheckRow('lbl-floor3',this.checked)">
+        3回フロア掃除
+      </label>
+      <label class="check-row" id="lbl-toilet3">
+        <input type="checkbox" id="toilet3" onchange="toggleCheckRow('lbl-toilet3',this.checked)">
+        3回トイレ
+      </label>
+      <label class="check-row" id="lbl-toilet2">
+        <input type="checkbox" id="toilet2" onchange="toggleCheckRow('lbl-toilet2',this.checked)">
+        2回トイレ
+      </label>
+    </div>
+  </div>
+
+  <!-- 無くなったメニュー -->
+  <div class="card">
+    <div class="card-title">無くなったメニュー</div>
+
+    <div class="sub-section-label">メイン</div>
+    <div class="sold-out-list" id="mainSoldOutList"></div>
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <input type="text" id="mainSoldOutInput" placeholder="品名を入力" style="flex:1; margin-bottom:0;">
+      <button class="btn btn-grey" onclick="addMainSoldOut()">追加</button>
+    </div>
+
+    <div class="sub-section-label">おばんざい（本日削除分）</div>
+    <div id="obanzaiDeletedList"><span class="spinner-sm"></span> 読み込み中...</div>
+  </div>
+
+  <!-- 本日の宿題 -->
+  <div class="card">
+    <div class="card-title">本日の宿題</div>
+    <div id="nightHomeworkList"><span class="spinner-sm"></span> 読み込み中...</div>
+  </div>
+
+  <!-- 備考 -->
+  <div class="card">
+    <div class="card-title">備考</div>
+    <textarea id="nightHandoverNotes" placeholder="引き継ぎ事項・申し送りなど" style="min-height:90px"></textarea>
+    <button class="btn btn-primary" onclick="saveNightHandover()" style="width:100%">保存する</button>
+    <div class="msg" id="nightHandoverMsg"></div>
   </div>
 </div>
 
@@ -614,10 +804,11 @@ document.querySelectorAll('.nav-btn').forEach(function(btn) {
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
 
-    if (btn.dataset.tab === 'menu') loadMenu();
-    if (btn.dataset.tab === 'business') loadBusiness();
-    if (btn.dataset.tab === 'handover') { loadHandoverMenu(); loadHandoverHistory(); }
-    if (btn.dataset.tab === 'sales') initSales();
+    if (btn.dataset.tab === 'menu')          loadMenu();
+    if (btn.dataset.tab === 'business')      loadBusiness();
+    if (btn.dataset.tab === 'handover-day')  loadHandoverDay();
+    if (btn.dataset.tab === 'handover-night') loadHandoverNight();
+    if (btn.dataset.tab === 'sales')         initSales();
   });
 });
 
@@ -862,113 +1053,344 @@ function saveBusiness() {
 }
 
 // ================================================
-// タブ3: 引き継ぎ
+// タブ3: 引き継ぎ資料【昼】
 // ================================================
-var handoverRows = [];
+var hwMaster   = [];   // 宿題マスタ全件
+var dayActiveIds = []; // 本日使用する宿題のrowIndex配列
 
-function loadHandoverMenu() {
+function loadHandoverDay() {
+  document.getElementById('homeworkList').innerHTML = '<span class="spinner-sm"></span> 読み込み中...';
+
   google.script.run
     .withSuccessHandler(function(json) {
-      handoverRows = JSON.parse(json);
-      renderHandoverTable(handoverRows);
+      hwMaster = JSON.parse(json);
+      google.script.run
+        .withSuccessHandler(function(json2) {
+          var data = JSON.parse(json2);
+          dayActiveIds = data.activeIds || [];
+          document.getElementById('dayHandoverNotes').value = data.notes || '';
+          renderHomeworkList();
+        })
+        .withFailureHandler(function(e) {
+          document.getElementById('homeworkList').innerHTML = '<div style="color:#e53935">読み込みエラー</div>';
+        })
+        .apiGetDayHandoverToday();
     })
-    .apiGetHandoverMenu();
+    .withFailureHandler(function(e) {
+      document.getElementById('homeworkList').innerHTML = '<div style="color:#e53935">読み込みエラー</div>';
+    })
+    .apiGetHomeworkMaster();
 }
 
-function generateHandover() {
+var HW_CATS = ['仕込み', '発注', '掃除', 'その他'];
+
+function renderHomeworkList() {
+  var html = '';
+  HW_CATS.forEach(function(cat) {
+    var items = hwMaster.filter(function(h) { return h.category === cat; });
+    html += '<div class="hw-category">';
+    html += '<div class="hw-cat-label">▍' + escHtml(cat) + '</div>';
+    if (items.length === 0) {
+      html += '<div class="menu-empty">登録なし</div>';
+    } else {
+      items.forEach(function(item) {
+        var isActive = dayActiveIds.indexOf(item.rowIndex) !== -1;
+        html += '<label class="hw-item">' +
+          '<input type="checkbox" class="hw-check" data-row="' + item.rowIndex + '"' +
+          (isActive ? ' checked' : '') + '>' +
+          '<span>' + escHtml(item.content) + '</span>' +
+          '</label>';
+      });
+    }
+    html += '</div>';
+  });
+
+  document.getElementById('homeworkList').innerHTML = html || '<div class="menu-empty">宿題がありません</div>';
+}
+
+function addHomework() {
+  var category = document.getElementById('newHwCategory').value;
+  var content  = document.getElementById('newHwContent').value.trim();
+  if (!content) { showMsg('hwAddMsg', '内容を入力してください', false); return; }
+
   google.script.run
     .withSuccessHandler(function(json) {
       var res = JSON.parse(json);
       if (res.success) {
-        showMsg('handoverGenMsg', '引き継ぎシートを作成しました', true);
-        loadHandoverMenu();
+        hwMaster = res.homework;
+        document.getElementById('newHwContent').value = '';
+        showMsg('hwAddMsg', '追加しました', true);
+        renderHomeworkList();
+      } else {
+        showMsg('hwAddMsg', res.error || 'エラー', false);
       }
     })
-    .apiGenerateHandover();
+    .apiAddHomeworkItem(JSON.stringify({ category: category, content: content }));
 }
 
-function renderHandoverTable(rows) {
-  if (!rows || rows.length === 0) {
-    document.getElementById('handoverMenuTable').innerHTML =
-      '<div style="color:#aaa;font-size:0.85rem">引き継ぎデータがありません。上の「作成」ボタンを押してください。</div>';
-    return;
-  }
-
-  var html = '<table class="handover-table"><thead><tr>' +
-    '<th>種別</th><th>品名</th><th>残数</th><th>仕込み</th><th>備考</th>' +
-    '</tr></thead><tbody>';
-
-  rows.forEach(function(row, idx) {
-    html += '<tr>' +
-      '<td style="white-space:nowrap">' + escHtml(row.category) + '</td>' +
-      '<td>' + escHtml(row.name) + '</td>' +
-      '<td><input type="number" id="rem_' + idx + '" value="' + escHtml(row.remaining) + '" min="0" style="width:60px"></td>' +
-      '<td><input type="text" id="prep_' + idx + '" value="' + escHtml(row.needPrep) + '" placeholder="有/無"></td>' +
-      '<td><input type="text" id="note_' + idx + '" value="' + escHtml(row.note) + '" placeholder="備考"></td>' +
-      '</tr>';
+function saveDayHandover() {
+  var activeIds = [];
+  document.querySelectorAll('.hw-check:checked').forEach(function(cb) {
+    activeIds.push(parseInt(cb.dataset.row, 10));
   });
 
-  html += '</tbody></table>';
-  document.getElementById('handoverMenuTable').innerHTML = html;
-}
-
-function saveHandoverRows() {
-  var done = 0;
-  if (handoverRows.length === 0) { showMsg('handoverSaveMsg', '保存するデータがありません', false); return; }
-
-  handoverRows.forEach(function(row, idx) {
-    var rem  = document.getElementById('rem_'  + idx) ? document.getElementById('rem_' + idx).value : '';
-    var prep = document.getElementById('prep_' + idx) ? document.getElementById('prep_' + idx).value : '';
-    var note = document.getElementById('note_' + idx) ? document.getElementById('note_' + idx).value : '';
-
-    google.script.run
-      .withSuccessHandler(function() {
-        done++;
-        if (done === handoverRows.length) showMsg('handoverSaveMsg', '保存しました', true);
-      })
-      .apiUpdateHandoverMenuRow(row.rowIndex, rem, prep, note);
-  });
-}
-
-function saveGeneralHandover() {
   var params = {
-    author:       document.getElementById('handoverAuthor').value,
-    todayStatus:  document.getElementById('handoverTodayStatus').value,
-    note:         document.getElementById('handoverNote').value,
-    prepList:     document.getElementById('handoverPrepList').value
+    activeIds: activeIds,
+    notes:     document.getElementById('dayHandoverNotes').value
   };
 
   google.script.run
     .withSuccessHandler(function(json) {
       var res = JSON.parse(json);
       if (res.success) {
-        showMsg('handoverGeneralMsg', '引き継ぎを保存しました', true);
-        loadHandoverHistory();
+        dayActiveIds = activeIds;
+        showMsg('dayHandoverMsg', '保存しました', true);
+      } else {
+        showMsg('dayHandoverMsg', res.error || 'エラー', false);
       }
     })
-    .apiSaveHandoverGeneral(JSON.stringify(params));
+    .apiSaveDayHandover(JSON.stringify(params));
 }
 
-function loadHandoverHistory() {
+// ================================================
+// タブ4: 引き継ぎ資料【夜】
+// ================================================
+var nightSoldOut     = [];   // メイン売切リスト
+var nightObanzai     = [];   // 本日削除おばんざい（削除ログから）
+var nightSavedData   = {};   // 既存の保存データ
+var nightActiveHwIds = [];   // 昼から取得した本日の宿題ID
+var nightLoaded      = { obanzai: false, main: false };
+
+function loadHandoverNight() {
+  // 初期化
+  nightSoldOut     = [];
+  nightObanzai     = [];
+  nightSavedData   = {};
+  nightActiveHwIds = [];
+  nightLoaded      = { obanzai: false, main: false };
+
+  renderMainSoldOut();
+  document.getElementById('obanzaiDeletedList').innerHTML  = '<span class="spinner-sm"></span> 読み込み中...';
+  document.getElementById('nightHomeworkList').innerHTML   = '<span class="spinner-sm"></span> 読み込み中...';
+
+  // メインチェーン: 宿題マスタ → 昼データ → 夜データ
   google.script.run
     .withSuccessHandler(function(json) {
-      var rows = JSON.parse(json);
-      if (!rows || rows.length === 0) {
-        document.getElementById('handoverHistory').innerHTML = '<div style="color:#aaa;font-size:0.85rem">記録がありません</div>';
-        return;
-      }
-      var html = '';
-      rows.forEach(function(r) {
-        html += '<div style="border-bottom:1px solid #f0f0f0;padding:10px 0">' +
-          '<div style="font-size:0.75rem;color:#aaa;margin-bottom:4px">' + escHtml(r.date) + ' 　' + escHtml(r.author) + '</div>' +
-          '<div style="font-size:0.85rem;margin-bottom:4px">' + escHtml(r.todayStatus) + '</div>' +
-          (r.note ? '<div style="font-size:0.82rem;color:#607d8b">申し送り: ' + escHtml(r.note) + '</div>' : '') +
-          (r.prepList ? '<div style="font-size:0.82rem;color:#8d6e63">仕込み: ' + escHtml(r.prepList) + '</div>' : '') +
-          '</div>';
-      });
-      document.getElementById('handoverHistory').innerHTML = html;
+      hwMaster = JSON.parse(json);
+      google.script.run
+        .withSuccessHandler(function(json2) {
+          var dayData      = JSON.parse(json2);
+          nightActiveHwIds = dayData.activeIds || [];
+          google.script.run
+            .withSuccessHandler(function(json3) {
+              nightSavedData = JSON.parse(json3);
+              applyNightSavedData();
+              nightLoaded.main = true;
+              if (nightLoaded.obanzai) renderObanzaiList();
+            })
+            .apiGetNightHandoverToday();
+        })
+        .apiGetDayHandoverToday();
     })
-    .apiGetHandoverGeneral();
+    .apiGetHomeworkMaster();
+
+  // 並列: おばんざい削除ログ
+  google.script.run
+    .withSuccessHandler(function(json) {
+      nightObanzai = JSON.parse(json);
+      nightLoaded.obanzai = true;
+      if (nightLoaded.main) renderObanzaiList();
+    })
+    .apiGetDeletedObanzaiToday();
+}
+
+function applyNightSavedData() {
+  var d = nightSavedData;
+
+  // 清掃チェックボックス
+  setCheck('floor2',  d.floor2  || false);
+  setCheck('floor3',  d.floor3  || false);
+  setCheck('toilet3', d.toilet3 || false);
+  setCheck('toilet2', d.toilet2 || false);
+
+  // メイン売切
+  nightSoldOut = d.mainSoldOut || [];
+  renderMainSoldOut();
+
+  // 備考
+  document.getElementById('nightHandoverNotes').value = d.notes || '';
+
+  // 宿題
+  renderNightHomework(d.completedIds || []);
+}
+
+function setCheck(id, val) {
+  var el  = document.getElementById(id);
+  var lbl = document.getElementById('lbl-' + id);
+  if (el)  el.checked = val;
+  if (lbl) lbl.classList.toggle('is-checked', val);
+}
+
+function toggleCheckRow(lblId, checked) {
+  var lbl = document.getElementById(lblId);
+  if (lbl) lbl.classList.toggle('is-checked', checked);
+}
+
+// メイン売切
+function addMainSoldOut() {
+  var input = document.getElementById('mainSoldOutInput');
+  var name  = input.value.trim();
+  if (!name) return;
+  nightSoldOut.push(name);
+  input.value = '';
+  renderMainSoldOut();
+}
+
+function removeMainSoldOut(idx) {
+  nightSoldOut.splice(idx, 1);
+  renderMainSoldOut();
+}
+
+function renderMainSoldOut() {
+  var html = '';
+  nightSoldOut.forEach(function(name, idx) {
+    html += '<span class="sold-out-tag">' + escHtml(name) +
+      '<button onclick="removeMainSoldOut(' + idx + ')">×</button></span>';
+  });
+  document.getElementById('mainSoldOutList').innerHTML = html;
+}
+
+// おばんざい引き継ぎ
+function renderObanzaiList() {
+  if (!nightObanzai || nightObanzai.length === 0) {
+    document.getElementById('obanzaiDeletedList').innerHTML =
+      '<div style="color:#aaa;font-size:0.85rem">本日削除されたおばんざいはありません</div>';
+    return;
+  }
+
+  var savedCarry = (nightSavedData && nightSavedData.obanzaiCarryOver) || [];
+  var html = '';
+
+  nightObanzai.forEach(function(item, idx) {
+    var saved    = null;
+    for (var k = 0; k < savedCarry.length; k++) {
+      if (savedCarry[k].name === item.name) { saved = savedCarry[k]; break; }
+    }
+    var isCarry  = saved ? saved.carryOver : null; // null = 未選択
+
+    html += '<div class="obanzai-item">' +
+      '<span class="obanzai-name">' + escHtml(item.name) + '</span>' +
+      '<div class="carry-toggle">' +
+        '<div class="carry-btn' + (isCarry === true  ? ' active active-yes' : '') +
+          '" onclick="setCarryOver(' + idx + ', true)">引き継ぐ</div>' +
+        '<div class="carry-btn' + (isCarry === false ? ' active active-no' : '') +
+          '" onclick="setCarryOver(' + idx + ', false)">引き継がない</div>' +
+      '</div>' +
+    '</div>';
+  });
+
+  document.getElementById('obanzaiDeletedList').innerHTML = html;
+}
+
+function setCarryOver(idx, carryOver) {
+  var item = nightObanzai[idx];
+  if (!nightSavedData.obanzaiCarryOver) nightSavedData.obanzaiCarryOver = [];
+  var existing = null;
+  for (var k = 0; k < nightSavedData.obanzaiCarryOver.length; k++) {
+    if (nightSavedData.obanzaiCarryOver[k].name === item.name) {
+      existing = nightSavedData.obanzaiCarryOver[k]; break;
+    }
+  }
+  if (existing) {
+    existing.carryOver = carryOver;
+  } else {
+    nightSavedData.obanzaiCarryOver.push({ name: item.name, carryOver: carryOver });
+  }
+  // ボタンの表示更新
+  renderObanzaiList();
+}
+
+// 宿題セクション（夜）
+function renderNightHomework(completedIds) {
+  var activeItems = hwMaster.filter(function(h) {
+    return nightActiveHwIds.indexOf(h.rowIndex) !== -1;
+  });
+
+  if (activeItems.length === 0) {
+    document.getElementById('nightHomeworkList').innerHTML =
+      '<div style="color:#aaa;font-size:0.85rem">本日の宿題はありません（昼の引き継ぎで宿題を選択してください）</div>';
+    return;
+  }
+
+  var incomplete = activeItems.filter(function(h) { return completedIds.indexOf(h.rowIndex) === -1; });
+  var completed  = activeItems.filter(function(h) { return completedIds.indexOf(h.rowIndex) !== -1; });
+  var html = '';
+
+  if (incomplete.length > 0) {
+    html += '<div class="hw-section-title" style="color:#e65100">△ 未完了の宿題</div>';
+    incomplete.forEach(function(h) {
+      html += '<label class="hw-item">' +
+        '<input type="checkbox" class="hw-complete-check" data-row="' + h.rowIndex + '">' +
+        '<span>' + escHtml(h.content) +
+          '<span class="hw-cat-tag">' + escHtml(h.category) + '</span>' +
+        '</span>' +
+        '</label>';
+    });
+  }
+
+  if (completed.length > 0) {
+    html += '<div class="hw-section-title" style="color:#2e7d32;margin-top:12px">✓ 完了した宿題</div>';
+    completed.forEach(function(h) {
+      html += '<label class="hw-item">' +
+        '<input type="checkbox" class="hw-complete-check" data-row="' + h.rowIndex + '" checked>' +
+        '<span class="hw-done-text">' + escHtml(h.content) +
+          '<span class="hw-cat-tag">' + escHtml(h.category) + '</span>' +
+        '</span>' +
+        '</label>';
+    });
+  }
+
+  document.getElementById('nightHomeworkList').innerHTML = html;
+}
+
+function saveNightHandover() {
+  var completedIds = [];
+  document.querySelectorAll('.hw-complete-check:checked').forEach(function(cb) {
+    completedIds.push(parseInt(cb.dataset.row, 10));
+  });
+
+  var obanzaiCarryOver = nightObanzai.map(function(item) {
+    var savedCarry = nightSavedData.obanzaiCarryOver || [];
+    var found = null;
+    for (var k = 0; k < savedCarry.length; k++) {
+      if (savedCarry[k].name === item.name) { found = savedCarry[k]; break; }
+    }
+    return { name: item.name, carryOver: found ? found.carryOver : false };
+  });
+
+  var params = {
+    floor2:           document.getElementById('floor2').checked,
+    floor3:           document.getElementById('floor3').checked,
+    toilet3:          document.getElementById('toilet3').checked,
+    toilet2:          document.getElementById('toilet2').checked,
+    mainSoldOut:      nightSoldOut,
+    obanzaiCarryOver: obanzaiCarryOver,
+    completedIds:     completedIds,
+    notes:            document.getElementById('nightHandoverNotes').value
+  };
+
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var res = JSON.parse(json);
+      if (res.success) {
+        nightSavedData.completedIds = completedIds;
+        showMsg('nightHandoverMsg', '保存しました', true);
+        renderNightHomework(completedIds);
+      } else {
+        showMsg('nightHandoverMsg', res.error || 'エラー', false);
+      }
+    })
+    .apiSaveNightHandover(JSON.stringify(params));
 }
 
 // ================================================

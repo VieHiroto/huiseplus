@@ -97,28 +97,42 @@ function apiGetMonthlySales(yearMonth) {
   return JSON.stringify(getMonthlySalesReport(yearMonth));
 }
 
-/** [スタッフ] 引き継ぎシート（メニュー）生成 */
-function apiGenerateHandover() {
-  return JSON.stringify(generateHandoverFromMenu());
+// ============================================================
+// 引き継ぎ API（昼・夜）
+// ============================================================
+
+/** [スタッフ] 宿題マスタ取得 */
+function apiGetHomeworkMaster() {
+  return JSON.stringify(getHomeworkMaster());
 }
 
-/** [スタッフ] 引き継ぎシート（メニュー）今日分取得 */
-function apiGetHandoverMenu() {
-  return JSON.stringify(getHandoverMenuToday());
-}
-
-/** [スタッフ] 引き継ぎシート（メニュー）行更新 */
-function apiUpdateHandoverMenuRow(rowIndex, remaining, needPrep, note) {
-  return JSON.stringify(updateHandoverMenuRow(parseInt(rowIndex, 10), remaining, needPrep, note));
-}
-
-/** [スタッフ] 引き継ぎシート（通常）保存 */
-function apiSaveHandoverGeneral(paramsJson) {
+/** [スタッフ] 宿題マスタに追加 */
+function apiAddHomeworkItem(paramsJson) {
   var params = JSON.parse(paramsJson);
-  return JSON.stringify(saveHandoverGeneral(params));
+  return JSON.stringify(addHomeworkItem(params.category, params.content));
 }
 
-/** [スタッフ] 引き継ぎシート（通常）取得 */
-function apiGetHandoverGeneral() {
-  return JSON.stringify(getHandoverGeneral(10));
+/** [スタッフ] 引き継ぎ_昼 保存 */
+function apiSaveDayHandover(paramsJson) {
+  return JSON.stringify(saveDayHandover(JSON.parse(paramsJson)));
+}
+
+/** [スタッフ] 引き継ぎ_昼 取得 */
+function apiGetDayHandoverToday() {
+  return JSON.stringify(getDayHandoverToday());
+}
+
+/** [スタッフ] 引き継ぎ_夜 保存 */
+function apiSaveNightHandover(paramsJson) {
+  return JSON.stringify(saveNightHandover(JSON.parse(paramsJson)));
+}
+
+/** [スタッフ] 引き継ぎ_夜 取得 */
+function apiGetNightHandoverToday() {
+  return JSON.stringify(getNightHandoverToday());
+}
+
+/** [スタッフ] 当日削除おばんざい取得 */
+function apiGetDeletedObanzaiToday() {
+  return JSON.stringify(getDeletedObanzaiToday());
 }

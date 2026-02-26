@@ -4,14 +4,16 @@
 // ============================================================
 
 var SHEET_NAMES = {
-  BUSINESS:        '営業設定',         // 待ち時間・URL等の雑設定
-  HOURS_WEEKLY:    '営業時間_曜日別',   // 曜日ごとの基本スケジュール
-  HOURS_SPECIAL:   '営業時間_特別日',   // 特別営業日・臨時休業等
-  MENU:            'メニュー管理',
-  HANDOVER_MENU:   '引き継ぎ_メニュー',
-  HANDOVER_GENERAL:'引き継ぎ_通常',
-  DAILY_SALES:     '日売上',
-  MONTHLY_SALES:   '月売上'
+  BUSINESS:          '営業設定',
+  HOURS_WEEKLY:      '営業時間_曜日別',
+  HOURS_SPECIAL:     '営業時間_特別日',
+  MENU:              'メニュー管理',
+  MENU_DELETE_LOG:   'メニュー削除ログ',
+  HANDOVER_HOMEWORK: '引き継ぎ_宿題マスタ',
+  HANDOVER_DAY:      '引き継ぎ_昼',
+  HANDOVER_NIGHT:    '引き継ぎ_夜',
+  DAILY_SALES:       '日売上',
+  MONTHLY_SALES:     '月売上'
 };
 
 /**
@@ -25,8 +27,10 @@ function setupSpreadsheet() {
   _setupHoursWeeklySheet(ss);
   _setupHoursSpecialSheet(ss);
   _setupMenuSheet(ss);
-  _setupHandoverMenuSheet(ss);
-  _setupHandoverGeneralSheet(ss);
+  _setupMenuDeleteLogSheet(ss);
+  _setupHandoverHomeworkSheet(ss);
+  _setupHandoverDaySheet(ss);
+  _setupHandoverNightSheet(ss);
   _setupDailySalesSheet(ss);
   _setupMonthlySalesSheet(ss);
 
@@ -80,13 +84,11 @@ function _setupHoursWeeklySheet(ss) {
   ];
   sheet.getRange(2, 1, rows.length, 5).setValues(rows);
 
-  // 区分の入力規則
   var categoryRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(['営業', '定休日'], true)
     .build();
   sheet.getRange(2, 2, 7, 1).setDataValidation(categoryRule);
 
-  // 列幅
   [80, 100, 100, 100, 130].forEach(function(w, i) {
     sheet.setColumnWidth(i + 1, w);
   });
@@ -103,13 +105,10 @@ function _setupHoursSpecialSheet(ss) {
   sheet.getRange(1, 1, 1, headers.length).setValues([headers])
     .setFontWeight('bold').setBackground('#e8f4f8');
 
-  // 区分の入力規則
   var categoryRule = SpreadsheetApp.newDataValidation()
     .requireValueInList(['特別営業', '臨時休業', '貸切'], true)
     .build();
   sheet.getRange(2, 2, 100, 1).setDataValidation(categoryRule);
-
-  // 日付列の書式
   sheet.getRange(2, 1, 100, 1).setNumberFormat('yyyy/MM/dd');
 
   [120, 100, 100, 100, 130, 220].forEach(function(w, i) {
@@ -129,26 +128,65 @@ function _setupMenuSheet(ss) {
   });
 }
 
-function _setupHandoverMenuSheet(ss) {
-  var sheet = _getOrCreateSheet(ss, SHEET_NAMES.HANDOVER_MENU);
+/**
+ * メニュー削除ログシート
+ */
+function _setupMenuDeleteLogSheet(ss) {
+  var sheet = _getOrCreateSheet(ss, SHEET_NAMES.MENU_DELETE_LOG);
   sheet.clearContents();
 
-  var headers = ['日付', 'カテゴリ', '品名', '残数', '仕込み必要', '備考'];
+  var headers = ['削除日時', 'カテゴリ', 'サブカテゴリ', '品名', '説明', '量'];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers])
-    .setFontWeight('bold').setBackground('#f3f3f3');
-  [120, 100, 250, 80, 100, 250].forEach(function(w, i) {
+    .setFontWeight('bold').setBackground('#ffebee');
+  [180, 100, 130, 200, 250, 100].forEach(function(w, i) {
     sheet.setColumnWidth(i + 1, w);
   });
 }
 
-function _setupHandoverGeneralSheet(ss) {
-  var sheet = _getOrCreateSheet(ss, SHEET_NAMES.HANDOVER_GENERAL);
+/**
+ * 引き継ぎ_宿題マスタシート（永続的な宿題リスト）
+ */
+function _setupHandoverHomeworkSheet(ss) {
+  var sheet = _getOrCreateSheet(ss, SHEET_NAMES.HANDOVER_HOMEWORK);
   sheet.clearContents();
 
-  var headers = ['日付', '記録者', '本日の状況', '翌日への申し送り', '仕込み一覧'];
+  var headers = ['カテゴリ', '内容', '追加日'];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers])
-    .setFontWeight('bold').setBackground('#f3f3f3');
-  [120, 100, 200, 250, 250].forEach(function(w, i) {
+    .setFontWeight('bold').setBackground('#e8f5e9');
+  [100, 350, 120].forEach(function(w, i) {
+    sheet.setColumnWidth(i + 1, w);
+  });
+}
+
+/**
+ * 引き継ぎ_昼シート（日次 昼の引き継ぎ記録）
+ */
+function _setupHandoverDaySheet(ss) {
+  var sheet = _getOrCreateSheet(ss, SHEET_NAMES.HANDOVER_DAY);
+  sheet.clearContents();
+
+  var headers = ['日付', '使用宿題IDs(JSON)', '備考'];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers])
+    .setFontWeight('bold').setBackground('#e3f2fd');
+  [120, 350, 300].forEach(function(w, i) {
+    sheet.setColumnWidth(i + 1, w);
+  });
+}
+
+/**
+ * 引き継ぎ_夜シート（日次 夜の引き継ぎ記録）
+ */
+function _setupHandoverNightSheet(ss) {
+  var sheet = _getOrCreateSheet(ss, SHEET_NAMES.HANDOVER_NIGHT);
+  sheet.clearContents();
+
+  var headers = [
+    '日付', '2回フロア掃除', '3回フロア掃除', '3回トイレ', '2回トイレ',
+    'メイン売切(JSON)', 'おばんざい引き継ぎ(JSON)', '完了宿題IDs(JSON)', '備考'
+  ];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers])
+    .setFontWeight('bold').setBackground('#fce4ec');
+  [120, 110, 110, 100, 100, 200, 250, 200, 300].forEach(function(w, i) {
     sheet.setColumnWidth(i + 1, w);
   });
 }

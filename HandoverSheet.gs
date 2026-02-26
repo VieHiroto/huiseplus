@@ -1,147 +1,241 @@
 // ============================================================
 // HandoverSheet.gs
-// 引き継ぎシート管理
+// 引き継ぎシート管理（昼・夜）
+// ============================================================
+
+var HOMEWORK_CATEGORIES = ['仕込み', '発注', '掃除', 'その他'];
+
+// ============================================================
+// 宿題マスタ管理
 // ============================================================
 
 /**
- * 引き継ぎシート（メニュー用）の今日分を取得
+ * 宿題マスタを全件取得
+ * @returns {Array} [{rowIndex, category, content, addedAt}]
  */
-function getHandoverMenuToday() {
-  var sheet = getSheet(SHEET_NAMES.HANDOVER_MENU);
-  var today = _formatDateHandover(new Date());
+function getHomeworkMaster() {
+  var sheet = getSheet(SHEET_NAMES.HANDOVER_HOMEWORK);
+  if (!sheet) return [];
   var values = sheet.getDataRange().getValues();
   var result = [];
-
   for (var i = 1; i < values.length; i++) {
     var row = values[i];
-    if (String(row[0]).substring(0, 10) === today) {
-      result.push({
-        rowIndex: i + 1,
-        date: row[0],
-        category: row[1],
-        name: row[2],
-        remaining: row[3],
-        needPrep: row[4],
-        note: row[5]
-      });
-    }
+    if (!row[1]) continue; // 内容が空の行はスキップ
+    result.push({
+      rowIndex: i + 1,
+      category: String(row[0] || ''),
+      content:  String(row[1] || ''),
+      addedAt:  String(row[2] || '')
+    });
   }
   return result;
 }
 
 /**
- * 引き継ぎシート（メニュー用）に行を追加・更新
- * メニューシートから自動生成する場合に使用
+ * 宿題マスタに新しいアイテムを追加
+ * @param {string} category - 仕込み / 発注 / 掃除 / その他
+ * @param {string} content  - 宿題内容
  */
-function saveHandoverMenu(items) {
-  var sheet = getSheet(SHEET_NAMES.HANDOVER_MENU);
-  var today = _formatDateHandover(new Date());
+function addHomeworkItem(category, content) {
+  if (HOMEWORK_CATEGORIES.indexOf(category) === -1) {
+    return { success: false, error: '不正なカテゴリです' };
+  }
+  content = String(content || '').trim();
+  if (!content) {
+    return { success: false, error: '内容を入力してください' };
+  }
 
-  // 本日分の既存行を削除
+  var sheet = getSheet(SHEET_NAMES.HANDOVER_HOMEWORK);
+  var today = _formatDateHandover(new Date());
+  sheet.appendRow([category, content, today]);
+
+  return { success: true, homework: getHomeworkMaster() };
+}
+
+// ============================================================
+// 引き継ぎ_昼
+// ============================================================
+
+/**
+ * 引き継ぎ_昼 の今日分を保存
+ * @param {Object} params - { activeIds: [rowIndex, ...], notes: '' }
+ */
+function saveDayHandover(params) {
+  var sheet = getSheet(SHEET_NAMES.HANDOVER_DAY);
+  var today = _formatDateHandover(new Date());
   var values = sheet.getDataRange().getValues();
-  for (var i = values.length - 1; i >= 1; i--) {
+
+  var rowData = [
+    today,
+    JSON.stringify(params.activeIds || []),
+    params.notes || ''
+  ];
+
+  for (var i = 1; i < values.length; i++) {
     if (String(values[i][0]).substring(0, 10) === today) {
-      sheet.deleteRow(i + 1);
+      sheet.getRange(i + 1, 1, 1, rowData.length).setValues([rowData]);
+      return { success: true };
     }
   }
 
-  // 新規追加
-  items.forEach(function(item) {
-    sheet.appendRow([
-      today,
-      item.category || '',
-      item.name || '',
-      item.remaining !== undefined ? item.remaining : '',
-      item.needPrep || '',
-      item.note || ''
-    ]);
-  });
-
+  sheet.appendRow(rowData);
   return { success: true };
 }
 
 /**
- * 引き継ぎシート（メニュー用）の1行を更新（残数・仕込み・備考）
+ * 引き継ぎ_昼 の今日分を取得
+ * @returns {Object} { activeIds: [], notes: '' }
  */
-function updateHandoverMenuRow(rowIndex, remaining, needPrep, note) {
-  var sheet = getSheet(SHEET_NAMES.HANDOVER_MENU);
-  sheet.getRange(rowIndex, 4).setValue(remaining !== undefined ? remaining : '');
-  sheet.getRange(rowIndex, 5).setValue(needPrep || '');
-  sheet.getRange(rowIndex, 6).setValue(note || '');
-  return { success: true };
-}
+function getDayHandoverToday() {
+  var sheet = getSheet(SHEET_NAMES.HANDOVER_DAY);
+  if (!sheet) return { activeIds: [], notes: '' };
 
-/**
- * メニューシートから本日のメニューを引き継ぎシートに展開
- * スタッフが「引き継ぎ作成」ボタンを押したときに呼ぶ
- */
-function generateHandoverFromMenu() {
-  var menu = getMenu();
-  var allItems = [];
-
-  menu.main.forEach(function(item) {
-    allItems.push({
-      category: item.category,
-      name: item.name,
-      remaining: '',
-      needPrep: '',
-      note: ''
-    });
-  });
-
-  menu.obanzai.forEach(function(item) {
-    allItems.push({
-      category: item.category,
-      name: item.name,
-      remaining: '',
-      needPrep: '',
-      note: ''
-    });
-  });
-
-  return saveHandoverMenu(allItems);
-}
-
-/**
- * 引き継ぎシート（通常営業用）に記録を追加
- */
-function saveHandoverGeneral(params) {
-  var sheet = getSheet(SHEET_NAMES.HANDOVER_GENERAL);
   var today = _formatDateHandover(new Date());
-
-  sheet.appendRow([
-    today,
-    params.author || '',
-    params.todayStatus || '',
-    params.note || '',
-    params.prepList || ''
-  ]);
-
-  return { success: true };
-}
-
-/**
- * 引き継ぎシート（通常）の直近N件を取得
- */
-function getHandoverGeneral(limit) {
-  var sheet = getSheet(SHEET_NAMES.HANDOVER_GENERAL);
   var values = sheet.getDataRange().getValues();
-  var result = [];
-  limit = limit || 10;
 
-  for (var i = Math.max(1, values.length - limit); i < values.length; i++) {
-    var row = values[i];
-    result.push({
-      date: row[0],
-      author: row[1],
-      todayStatus: row[2],
-      note: row[3],
-      prepList: row[4]
-    });
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).substring(0, 10) === today) {
+      var activeIds = [];
+      try { activeIds = JSON.parse(String(values[i][1] || '[]')); } catch (e) {}
+      return {
+        activeIds: activeIds,
+        notes:     String(values[i][2] || '')
+      };
+    }
   }
 
-  return result.reverse();
+  return { activeIds: [], notes: '' };
 }
+
+// ============================================================
+// 引き継ぎ_夜
+// ============================================================
+
+/**
+ * 引き継ぎ_夜 の今日分を保存
+ * @param {Object} params
+ *   {
+ *     floor2: bool,           // 2回フロア掃除
+ *     floor3: bool,           // 3回フロア掃除
+ *     toilet3: bool,          // 3回トイレ
+ *     toilet2: bool,          // 2回トイレ
+ *     mainSoldOut: ['品名', ...],
+ *     obanzaiCarryOver: [{name, carryOver: bool}, ...],
+ *     completedIds: [rowIndex, ...],
+ *     notes: ''
+ *   }
+ */
+function saveNightHandover(params) {
+  var sheet = getSheet(SHEET_NAMES.HANDOVER_NIGHT);
+  var today = _formatDateHandover(new Date());
+  var values = sheet.getDataRange().getValues();
+
+  var rowData = [
+    today,
+    params.floor2  ? true : false,
+    params.floor3  ? true : false,
+    params.toilet3 ? true : false,
+    params.toilet2 ? true : false,
+    JSON.stringify(params.mainSoldOut       || []),
+    JSON.stringify(params.obanzaiCarryOver  || []),
+    JSON.stringify(params.completedIds      || []),
+    params.notes || ''
+  ];
+
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).substring(0, 10) === today) {
+      sheet.getRange(i + 1, 1, 1, rowData.length).setValues([rowData]);
+      return { success: true };
+    }
+  }
+
+  sheet.appendRow(rowData);
+  return { success: true };
+}
+
+/**
+ * 引き継ぎ_夜 の今日分を取得
+ */
+function getNightHandoverToday() {
+  var sheet = getSheet(SHEET_NAMES.HANDOVER_NIGHT);
+  if (!sheet) return _emptyNight();
+
+  var today = _formatDateHandover(new Date());
+  var values = sheet.getDataRange().getValues();
+
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).substring(0, 10) === today) {
+      var row = values[i];
+      var mainSoldOut = [], obanzaiCarryOver = [], completedIds = [];
+      try { mainSoldOut      = JSON.parse(String(row[5] || '[]')); } catch (e) {}
+      try { obanzaiCarryOver = JSON.parse(String(row[6] || '[]')); } catch (e) {}
+      try { completedIds     = JSON.parse(String(row[7] || '[]')); } catch (e) {}
+      return {
+        floor2:           row[1] === true || row[1] === 'TRUE',
+        floor3:           row[2] === true || row[2] === 'TRUE',
+        toilet3:          row[3] === true || row[3] === 'TRUE',
+        toilet2:          row[4] === true || row[4] === 'TRUE',
+        mainSoldOut:      mainSoldOut,
+        obanzaiCarryOver: obanzaiCarryOver,
+        completedIds:     completedIds,
+        notes:            String(row[8] || '')
+      };
+    }
+  }
+
+  return _emptyNight();
+}
+
+function _emptyNight() {
+  return {
+    floor2: false, floor3: false, toilet3: false, toilet2: false,
+    mainSoldOut: [], obanzaiCarryOver: [], completedIds: [], notes: ''
+  };
+}
+
+// ============================================================
+// おばんざい削除ログ
+// ============================================================
+
+/**
+ * 当日に削除されたおばんざいメニューを取得
+ * @returns {Array} [{name}]
+ */
+function getDeletedObanzaiToday() {
+  var sheet = getSheet(SHEET_NAMES.MENU_DELETE_LOG);
+  if (!sheet) return [];
+
+  var today = _formatDateHandover(new Date());
+  var values = sheet.getDataRange().getValues();
+  var result = [];
+  var seen = {};
+
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    // row[0] は削除日時（例: '2026/02/26 12:34:56' または Date型）
+    var deletedDate = '';
+    if (row[0] instanceof Date) {
+      deletedDate = _formatDateHandover(row[0]);
+    } else {
+      // 'YYYY/MM/DD HH:MM:SS' → 'YYYY-MM-DD' に変換
+      deletedDate = String(row[0]).substring(0, 10).replace(/\//g, '-');
+    }
+
+    if (deletedDate === today && String(row[1]) === 'おばんざい') {
+      var name = String(row[3] || '');
+      if (name && !seen[name]) {
+        seen[name] = true;
+        result.push({ name: name });
+      }
+    }
+  }
+
+  return result;
+}
+
+// ============================================================
+// ユーティリティ
+// ============================================================
 
 function _formatDateHandover(date) {
   return date.getFullYear() + '-' +

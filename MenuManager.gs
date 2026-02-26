@@ -118,6 +118,21 @@ function deleteMenuItem(rowIndex) {
     return { success: false, error: '不正な行番号です' };
   }
 
+  // 削除前にログを記録（おばんざいは夜の引き継ぎで使用）
+  var row = sheet.getRange(rowIndex, 1, 1, 9).getValues()[0];
+  var logSheet = getSheet(SHEET_NAMES.MENU_DELETE_LOG);
+  if (logSheet) {
+    var now = new Date().toLocaleString('ja-JP');
+    logSheet.appendRow([
+      now,
+      row[MCOL.CATEGORY],
+      row[MCOL.SUB_CATEGORY],
+      row[MCOL.NAME],
+      row[MCOL.DESCRIPTION],
+      row[MCOL.QUANTITY]
+    ]);
+  }
+
   sheet.deleteRow(rowIndex);
   return { success: true, menu: getMenu() };
 }
