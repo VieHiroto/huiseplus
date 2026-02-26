@@ -53,13 +53,33 @@ function apiUpdateBusinessStatus(paramsJson) {
 }
 
 /** [スタッフ] メニュー追加 */
-function apiAddMenuItem(category, name) {
-  return JSON.stringify(addMenuItem(category, name));
+function apiAddMenuItem(paramsJson) {
+  return JSON.stringify(addMenuItem(JSON.parse(paramsJson)));
 }
 
 /** [スタッフ] メニュー削除 */
 function apiDeleteMenuItem(rowIndex) {
   return JSON.stringify(deleteMenuItem(parseInt(rowIndex, 10)));
+}
+
+/** [スタッフ] 残数更新 */
+function apiUpdateMenuItemStock(rowIndex, stock) {
+  return JSON.stringify(updateMenuItemStock(parseInt(rowIndex, 10), stock));
+}
+
+/** [スタッフ] 非表示トグル */
+function apiToggleMenuItemHidden(rowIndex) {
+  return JSON.stringify(toggleMenuItemHidden(parseInt(rowIndex, 10)));
+}
+
+/** [スタッフ] 並び順変更 */
+function apiMoveMenuItem(rowIndex, direction) {
+  return JSON.stringify(moveMenuItem(parseInt(rowIndex, 10), direction));
+}
+
+/** [スタッフ] カテゴリ別クリア */
+function apiClearMenuByCategory(category) {
+  return JSON.stringify(clearMenuByCategory(category));
 }
 
 /** [スタッフ] メニュー全クリア */

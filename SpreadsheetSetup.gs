@@ -60,12 +60,18 @@ function _setupMenuSheet(ss) {
   var sheet = _getOrCreateSheet(ss, SHEET_NAMES.MENU);
   sheet.clearContents();
 
-  var headers = ['カテゴリ', '品名', '追加日時'];
+  var headers = ['カテゴリ', 'サブカテゴリ', '品名', '説明', '量', '残数', '非表示', '並び順', '追加日時'];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers])
     .setFontWeight('bold').setBackground('#f3f3f3');
   sheet.setColumnWidth(1, 120);
-  sheet.setColumnWidth(2, 250);
-  sheet.setColumnWidth(3, 180);
+  sheet.setColumnWidth(2, 130);
+  sheet.setColumnWidth(3, 200);
+  sheet.setColumnWidth(4, 250);
+  sheet.setColumnWidth(5, 100);
+  sheet.setColumnWidth(6, 80);
+  sheet.setColumnWidth(7, 80);
+  sheet.setColumnWidth(8, 80);
+  sheet.setColumnWidth(9, 180);
 }
 
 function _setupHandoverMenuSheet(ss) {

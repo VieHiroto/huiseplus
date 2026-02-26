@@ -158,14 +158,29 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     }
 
-    .menu-input-row {
+    /* サブカテゴリ選択（メインのみ表示） */
+    .sub-cat-group {
       display: flex;
-      gap: 8px;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
     }
 
-    .menu-input-row input {
-      flex: 1;
-      margin-bottom: 0;
+    .sub-cat-btn {
+      padding: 5px 12px;
+      border-radius: 16px;
+      border: 1px solid #cfd8dc;
+      background: #fff;
+      font-size: 0.82rem;
+      cursor: pointer;
+      color: #607d8b;
+      transition: all 0.15s;
+    }
+
+    .sub-cat-btn.active {
+      background: #37474f;
+      color: #fff;
+      border-color: #37474f;
     }
 
     .menu-board {
@@ -182,17 +197,96 @@
       margin-bottom: 8px;
     }
 
+    /* 品目行 */
     .menu-item-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 0;
+      padding: 10px 0;
       border-bottom: 1px solid #f0f0f0;
     }
 
     .menu-item-row:last-child { border-bottom: none; }
 
-    .menu-item-name { flex: 1; font-size: 0.95rem; }
+    .menu-item-row.hidden-item { opacity: 0.45; }
+
+    .menu-item-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .sub-cat-tag {
+      font-size: 0.72rem;
+      background: #eceff1;
+      color: #546e7a;
+      border-radius: 10px;
+      padding: 1px 8px;
+      white-space: nowrap;
+    }
+
+    .menu-item-name {
+      flex: 1;
+      font-size: 0.95rem;
+      font-weight: bold;
+    }
+
+    .menu-item-meta {
+      font-size: 0.8rem;
+      color: #90a4ae;
+      margin-top: 3px;
+      padding-left: 2px;
+    }
+
+    .menu-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    /* 残数ボタン */
+    .stock-btn {
+      padding: 3px 10px;
+      border-radius: 4px;
+      border: 1px solid #cfd8dc;
+      background: #fff;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: #607d8b;
+      transition: all 0.15s;
+    }
+
+    .stock-btn.active-ある  { background: #e8f5e9; border-color: #66bb6a; color: #2e7d32; font-weight: bold; }
+    .stock-btn.active-少し  { background: #fff3e0; border-color: #ffa726; color: #e65100; font-weight: bold; }
+    .stock-btn.active-ない  { background: #ffebee; border-color: #ef5350; color: #c62828; font-weight: bold; }
+
+    /* 非表示・移動・削除 */
+    .btn-hide {
+      padding: 3px 9px;
+      border-radius: 4px;
+      border: 1px solid #b0bec5;
+      background: #fff;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: #607d8b;
+    }
+
+    .btn-hide.is-hidden {
+      background: #37474f;
+      color: #fff;
+      border-color: #37474f;
+    }
+
+    .btn-move {
+      padding: 3px 7px;
+      border-radius: 4px;
+      border: 1px solid #cfd8dc;
+      background: #fff;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: #607d8b;
+      line-height: 1;
+    }
 
     .btn-del {
       background: none;
@@ -200,8 +294,9 @@
       color: #e53935;
       border-radius: 4px;
       padding: 3px 10px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       cursor: pointer;
+      margin-left: auto;
     }
 
     .menu-empty { color: #aaa; font-size: 0.85rem; padding: 10px 0; }
@@ -350,15 +445,33 @@
   <div class="card">
     <div class="card-title">本日のメニュー追加</div>
 
+    <!-- カテゴリ -->
     <div class="toggle-group">
       <div class="toggle-btn active" id="toggleMain" onclick="setCategory('メイン')">メイン</div>
       <div class="toggle-btn" id="toggleObanzai" onclick="setCategory('おばんざい')">おばんざい</div>
     </div>
 
-    <div class="menu-input-row">
-      <input type="text" id="menuInput" placeholder="品名を入力..." onkeydown="if(event.key==='Enter')addItem()">
-      <button class="btn btn-teal" onclick="addItem()">追加</button>
+    <!-- サブカテゴリ（メインのみ） -->
+    <div id="subCatArea">
+      <label>種類</label>
+      <div class="sub-cat-group" id="subCatGroup">
+        <div class="sub-cat-btn active" onclick="setSubCat('肉')">肉</div>
+        <div class="sub-cat-btn" onclick="setSubCat('魚')">魚</div>
+        <div class="sub-cat-btn" onclick="setSubCat('大人のお子様')">大人のお子様</div>
+        <div class="sub-cat-btn" onclick="setSubCat('ヘルシー')">ヘルシー</div>
+      </div>
     </div>
+
+    <label>品名</label>
+    <input type="text" id="menuInput" placeholder="例：鰆の西京焼き">
+
+    <label>説明（任意）</label>
+    <input type="text" id="menuDesc" placeholder="例：旬の野菜を添えて">
+
+    <label>量（任意）</label>
+    <input type="text" id="menuQty" placeholder="例：1人前">
+
+    <button class="btn btn-teal" onclick="addItem()" style="width:100%; margin-top:4px">追加する</button>
     <div class="msg" id="menuMsg"></div>
   </div>
 
@@ -541,31 +654,82 @@ document.querySelectorAll('.nav-btn').forEach(function(btn) {
 // タブ1: メニュー
 // ================================================
 var currentCategory = 'メイン';
+var currentSubCat   = '肉';
 
 function setCategory(cat) {
   currentCategory = cat;
   document.getElementById('toggleMain').classList.toggle('active', cat === 'メイン');
   document.getElementById('toggleObanzai').classList.toggle('active', cat === 'おばんざい');
+  document.getElementById('subCatArea').style.display = cat === 'メイン' ? '' : 'none';
+}
+
+function setSubCat(sub) {
+  currentSubCat = sub;
+  document.querySelectorAll('#subCatGroup .sub-cat-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.textContent === sub);
+  });
 }
 
 function addItem() {
   var name = document.getElementById('menuInput').value.trim();
   if (!name) { showMsg('menuMsg', '品名を入力してください', false); return; }
 
+  var params = {
+    category:    currentCategory,
+    subCategory: currentCategory === 'メイン' ? currentSubCat : '',
+    name:        name,
+    description: document.getElementById('menuDesc').value.trim(),
+    quantity:    document.getElementById('menuQty').value.trim()
+  };
+
   google.script.run
     .withSuccessHandler(function(json) {
       var res = JSON.parse(json);
       if (res.success) {
         document.getElementById('menuInput').value = '';
+        document.getElementById('menuDesc').value  = '';
+        document.getElementById('menuQty').value   = '';
+        showMsg('menuMsg', '追加しました', true);
         renderMenuBoard(res.menu);
       } else {
         showMsg('menuMsg', res.error || 'エラーが発生しました', false);
       }
     })
-    .apiAddMenuItem(currentCategory, name);
+    .withFailureHandler(function(e) {
+      showMsg('menuMsg', '通信エラー: ' + String(e), false);
+    })
+    .apiAddMenuItem(JSON.stringify(params));
+}
+
+function updateStock(rowIndex, stock) {
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var res = JSON.parse(json);
+      if (res.success) renderMenuBoard(res.menu);
+    })
+    .apiUpdateMenuItemStock(rowIndex, stock);
+}
+
+function toggleHidden(rowIndex) {
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var res = JSON.parse(json);
+      if (res.success) renderMenuBoard(res.menu);
+    })
+    .apiToggleMenuItemHidden(rowIndex);
+}
+
+function moveItem(rowIndex, direction) {
+  google.script.run
+    .withSuccessHandler(function(json) {
+      var res = JSON.parse(json);
+      if (res.success) renderMenuBoard(res.menu);
+    })
+    .apiMoveMenuItem(rowIndex, direction);
 }
 
 function deleteItem(rowIndex) {
+  if (!confirm('このメニューを削除しますか？')) return;
   google.script.run
     .withSuccessHandler(function(json) {
       var res = JSON.parse(json);
@@ -577,10 +741,8 @@ function deleteItem(rowIndex) {
 function clearCategory(cat) {
   if (!confirm(cat + 'のメニューを全部消しますか？')) return;
   google.script.run
-    .withSuccessHandler(function(json) {
-      loadMenu();
-    })
-    .apiClearMenu(); // 全消し（カテゴリ別は拡張時）
+    .withSuccessHandler(function() { loadMenu(); })
+    .apiClearMenuByCategory(cat);
 }
 
 function loadMenu() {
@@ -591,33 +753,46 @@ function loadMenu() {
     .apiGetMenu();
 }
 
+var SUB_CAT_ORDER_STAFF = ['肉', '魚', '大人のお子様', 'ヘルシー'];
+
 function renderMenuBoard(data) {
   var html = '';
 
-  // メイン
+  // ---- メイン（サブカテゴリ別） ----
   html += '<div class="menu-board-section">';
   html += '<div class="menu-board-label">▍メイン</div>';
+
   if (data.main && data.main.length > 0) {
+    // サブカテゴリごとにグループ
+    var grouped = {};
     data.main.forEach(function(item) {
-      html += '<div class="menu-item-row">' +
-        '<span class="menu-item-name">' + escHtml(item.name) + '</span>' +
-        '<button class="btn-del" onclick="deleteItem(' + item.rowIndex + ')">削除</button>' +
-      '</div>';
+      var sub = item.subCategory || '（未分類）';
+      if (!grouped[sub]) grouped[sub] = [];
+      grouped[sub].push(item);
+    });
+
+    var orderedSubs = SUB_CAT_ORDER_STAFF.filter(function(s) { return grouped[s]; });
+    Object.keys(grouped).forEach(function(s) {
+      if (orderedSubs.indexOf(s) === -1) orderedSubs.push(s);
+    });
+
+    orderedSubs.forEach(function(sub) {
+      html += '<div style="font-size:0.72rem;color:#8d6e63;margin:8px 0 4px;font-weight:bold">' + escHtml(sub) + '</div>';
+      grouped[sub].forEach(function(item) {
+        html += buildItemRow(item);
+      });
     });
   } else {
     html += '<div class="menu-empty">未登録</div>';
   }
   html += '</div>';
 
-  // おばんざい
+  // ---- おばんざい ----
   html += '<div class="menu-board-section">';
   html += '<div class="menu-board-label">▍おばんざい</div>';
   if (data.obanzai && data.obanzai.length > 0) {
     data.obanzai.forEach(function(item) {
-      html += '<div class="menu-item-row">' +
-        '<span class="menu-item-name">' + escHtml(item.name) + '</span>' +
-        '<button class="btn-del" onclick="deleteItem(' + item.rowIndex + ')">削除</button>' +
-      '</div>';
+      html += buildItemRow(item);
     });
   } else {
     html += '<div class="menu-empty">未登録</div>';
@@ -625,6 +800,38 @@ function renderMenuBoard(data) {
   html += '</div>';
 
   document.getElementById('menuBoard').innerHTML = html;
+}
+
+function buildItemRow(item) {
+  var ri = item.rowIndex;
+  var hiddenClass = item.hidden ? ' hidden-item' : '';
+  var stocks = ['ある', '少し', 'ない'];
+  var stockBtns = stocks.map(function(s) {
+    var activeClass = item.stock === s ? ' active-' + s : '';
+    return '<button class="stock-btn' + activeClass + '" onclick="updateStock(' + ri + ',\'' + s + '\')">' + s + '</button>';
+  }).join('');
+
+  var hideLabel = item.hidden ? '表示する' : '非表示';
+  var hideCls   = item.hidden ? ' is-hidden' : '';
+
+  var meta = [];
+  if (item.description) meta.push(escHtml(item.description));
+  if (item.quantity)    meta.push('量: ' + escHtml(item.quantity));
+  var metaHtml = meta.length ? '<div class="menu-item-meta">' + meta.join('　') + '</div>' : '';
+
+  return '<div class="menu-item-row' + hiddenClass + '">' +
+    '<div class="menu-item-top">' +
+      '<span class="menu-item-name">' + escHtml(item.name) + '</span>' +
+    '</div>' +
+    metaHtml +
+    '<div class="menu-item-actions">' +
+      stockBtns +
+      '<button class="btn-move" onclick="moveItem(' + ri + ',\'up\')">↑</button>' +
+      '<button class="btn-move" onclick="moveItem(' + ri + ',\'down\')">↓</button>' +
+      '<button class="btn-hide' + hideCls + '" onclick="toggleHidden(' + ri + ')">' + hideLabel + '</button>' +
+      '<button class="btn-del" onclick="deleteItem(' + ri + ')">削除</button>' +
+    '</div>' +
+  '</div>';
 }
 
 // ================================================

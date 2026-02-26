@@ -126,7 +126,7 @@
       margin-left: auto;
     }
 
-    /* ---- メニューカード ---- */
+    /* ---- メニュー ---- */
     .section-title {
       font-size: 0.7rem;
       letter-spacing: 0.12em;
@@ -152,48 +152,60 @@
       margin-bottom: 16px;
     }
 
-    .menu-tab-header {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .menu-tab {
-      padding: 6px 18px;
-      border-radius: 20px;
-      font-size: 0.85rem;
+    /* サブカテゴリ見出し */
+    .sub-cat-label {
+      font-size: 0.72rem;
       font-weight: bold;
-      cursor: default;
-      border: 1px solid #3a3a3a;
+      letter-spacing: 0.1em;
       color: #a08060;
+      padding: 8px 0 4px;
+      border-bottom: 1px solid #3a3a3a;
+      margin-bottom: 4px;
     }
 
-    .menu-tab.active {
-      background: #8b6914;
-      color: #fff;
-      border-color: #8b6914;
+    .sub-cat-label:not(:first-child) {
+      margin-top: 14px;
     }
 
-    .menu-list {
-      list-style: none;
+    /* 品目行 */
+    .menu-item {
+      padding: 10px 0 10px 14px;
+      border-bottom: 1px solid #2f2f2f;
+      position: relative;
     }
 
-    .menu-list li {
-      padding: 10px 0;
-      border-bottom: 1px solid #333;
+    .menu-item:last-child { border-bottom: none; }
+
+    .menu-item::before {
+      content: '●';
+      color: #8b6914;
+      font-size: 0.55rem;
+      position: absolute;
+      left: 0;
+      top: 14px;
+    }
+
+    .menu-item-name {
       font-size: 1rem;
       color: #f5f0e8;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
-    .menu-list li:last-child { border-bottom: none; }
+    .stock-badge-low {
+      font-size: 0.7rem;
+      background: #7c3f00;
+      color: #ffcc80;
+      border-radius: 10px;
+      padding: 1px 8px;
+      white-space: nowrap;
+    }
 
-    .menu-list li::before {
-      content: '●';
-      color: #8b6914;
-      font-size: 0.6rem;
+    .menu-item-desc {
+      font-size: 0.82rem;
+      color: #857060;
+      margin-top: 3px;
     }
 
     .menu-empty {
@@ -243,9 +255,15 @@
     <div class="loading"><div class="spinner"></div>読み込み中...</div>
   </div>
 
-  <!-- メニュー -->
-  <div class="section-title">本日のお料理</div>
-  <div class="menu-card" id="menuSection">
+  <!-- メイン -->
+  <div class="section-title">本日のメイン</div>
+  <div class="menu-card" id="menuMainSection">
+    <div class="loading"><div class="spinner"></div>読み込み中...</div>
+  </div>
+
+  <!-- おばんざい -->
+  <div class="section-title">本日のおばんざい</div>
+  <div class="menu-card" id="menuObanzaiSection">
     <div class="loading"><div class="spinner"></div>読み込み中...</div>
   </div>
 </main>
@@ -314,53 +332,57 @@
   }
 
   // ---- メニュー描画 ----
-  function renderMenu(data) {
-    var section = document.getElementById('menuSection');
-    var html = '<div class="menu-tab-header">' +
-      '<span class="menu-tab active">メイン</span>' +
-      '<span class="menu-tab">おばんざい</span>' +
+  var SUB_CAT_ORDER = ['肉', '魚', '大人のお子様', 'ヘルシー'];
+
+  function menuItemHtml(item) {
+    var stockBadge = item.stock === '少し'
+      ? '<span class="stock-badge-low">残りわずか</span>' : '';
+    var desc = item.description
+      ? '<div class="menu-item-desc">' + escHtml(item.description) + '</div>' : '';
+    return '<div class="menu-item">' +
+      '<div class="menu-item-name">' + escHtml(item.name) + stockBadge + '</div>' +
+      desc +
     '</div>';
+  }
 
-    // メイン
-    html += '<div id="menuMain">';
-    if (data.main && data.main.length > 0) {
-      html += '<ul class="menu-list">';
-      data.main.forEach(function(item) {
-        html += '<li>' + escHtml(item.name) + '</li>';
-      });
-      html += '</ul>';
-    } else {
-      html += '<div class="menu-empty">本日のメインは後ほど更新されます</div>';
-    }
-    html += '</div>';
-
-    // おばんざい
-    html += '<div id="menuObanzai" style="display:none">';
-    if (data.obanzai && data.obanzai.length > 0) {
-      html += '<ul class="menu-list">';
-      data.obanzai.forEach(function(item) {
-        html += '<li>' + escHtml(item.name) + '</li>';
-      });
-      html += '</ul>';
-    } else {
-      html += '<div class="menu-empty">本日のおばんざいは後ほど更新されます</div>';
-    }
-    html += '</div>';
-
-    section.innerHTML = html;
-
-    // タブ切り替えイベント
-    var tabs = section.querySelectorAll('.menu-tab');
-    tabs[0].addEventListener('click', function() {
-      tabs[0].classList.add('active'); tabs[1].classList.remove('active');
-      document.getElementById('menuMain').style.display = '';
-      document.getElementById('menuObanzai').style.display = 'none';
+  function renderMenu(data) {
+    // ---- メイン（サブカテゴリでグループ） ----
+    var mainEl = document.getElementById('menuMainSection');
+    var visibleMain = (data.main || []).filter(function(i) {
+      return !i.hidden && i.stock !== 'ない';
     });
-    tabs[1].addEventListener('click', function() {
-      tabs[1].classList.add('active'); tabs[0].classList.remove('active');
-      document.getElementById('menuMain').style.display = 'none';
-      document.getElementById('menuObanzai').style.display = '';
+
+    if (visibleMain.length === 0) {
+      mainEl.innerHTML = '<div class="menu-empty">本日のメインは後ほど更新されます</div>';
+    } else {
+      var mainHtml = '';
+      SUB_CAT_ORDER.forEach(function(sub) {
+        var items = visibleMain.filter(function(i) { return i.subCategory === sub; });
+        if (items.length === 0) return;
+        mainHtml += '<div class="sub-cat-label">' + escHtml(sub) + '</div>';
+        items.forEach(function(item) { mainHtml += menuItemHtml(item); });
+      });
+      // サブカテゴリ未設定のアイテムも表示
+      var nosub = visibleMain.filter(function(i) {
+        return SUB_CAT_ORDER.indexOf(i.subCategory) === -1;
+      });
+      nosub.forEach(function(item) { mainHtml += menuItemHtml(item); });
+      mainEl.innerHTML = mainHtml;
+    }
+
+    // ---- おばんざい ----
+    var obanzaiEl = document.getElementById('menuObanzaiSection');
+    var visibleOb = (data.obanzai || []).filter(function(i) {
+      return !i.hidden && i.stock !== 'ない';
     });
+
+    if (visibleOb.length === 0) {
+      obanzaiEl.innerHTML = '<div class="menu-empty">本日のおばんざいは後ほど更新されます</div>';
+    } else {
+      var obHtml = '';
+      visibleOb.forEach(function(item) { obHtml += menuItemHtml(item); });
+      obanzaiEl.innerHTML = obHtml;
+    }
   }
 
   function escHtml(str) {
@@ -385,7 +407,9 @@
         renderMenu(JSON.parse(json));
       })
       .withFailureHandler(function() {
-        document.getElementById('menuSection').innerHTML = '<div style="color:#ef5350">情報の取得に失敗しました</div>';
+        var msg = '<div style="color:#ef5350">情報の取得に失敗しました</div>';
+        document.getElementById('menuMainSection').innerHTML = msg;
+        document.getElementById('menuObanzaiSection').innerHTML = msg;
       })
       .apiGetMenu();
   }
