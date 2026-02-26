@@ -8,7 +8,7 @@ var MENU_CATEGORY = {
   OBANZAI: 'おばんざい'
 };
 
-var MAIN_SUB_CATEGORIES = ['肉', '魚', '大人のお子様', 'ヘルシー'];
+var MAIN_SUB_CATEGORIES = ['肉', '魚', '大人のお子様', 'ヘルシー','おすすめ'];
 var STOCK_OPTIONS = ['ある', '少し', 'ない'];
 
 // シート列インデックス（0始まり）
@@ -203,4 +203,3 @@ function moveMenuItem(rowIndex, direction) {
 
   return { success: true, menu: getMenu() };
 }
-
