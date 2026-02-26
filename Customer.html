@@ -287,12 +287,12 @@
     var statusClass = 'open';
     var statusText = '営業中';
 
-    if (data.status === '貸切') {
+    if (data.isClosed) {
+      statusClass = 'closed';
+      statusText = data.status === '定休日' ? '本日定休日' : '本日休業';
+    } else if (data.isCharter) {
       statusClass = 'charter';
       statusText = '本日貸切';
-    } else if (data.status === '臨時休業') {
-      statusClass = 'closed';
-      statusText = '本日休業';
     } else if (!data.isOpen) {
       statusClass = 'closed';
       statusText = '準備中';
@@ -301,19 +301,22 @@
     section.className = 'status-card status-' + statusClass;
 
     var hoursHtml = '';
-    if (data.status !== '臨時休業' && data.status !== '貸切') {
-      hoursHtml = '<div class="status-hours">営業時間 ' + data.displayOpen + ' 〜 ' + data.displayClose + '</div>';
+    if (!data.isClosed && !data.isCharter) {
+      hoursHtml = '<div class="status-hours">営業時間 ' + data.openTime + ' 〜 ' + data.closeTime + '</div>';
+      if (data.lastOrder) {
+        hoursHtml += '<div class="status-hours" style="font-size:0.88rem">ラストオーダー ' + escHtml(data.lastOrder) + '</div>';
+      }
     }
 
     var waitHtml = '';
-    if (data.hasWait && data.status !== '臨時休業' && data.status !== '貸切') {
+    if (data.hasWait && !data.isClosed && !data.isCharter) {
       waitHtml = '<div><span class="wait-badge">現在 約' + data.waitMin + '分お待ちいただいています</span></div>';
     }
 
     var noteHtml = data.specialNote ? '<div class="status-note">' + escHtml(data.specialNote) + '</div>' : '';
 
-    var tomorrowText = data.tomorrowPlan || '通常営業';
-    var tomorrowClass = tomorrowText === '休業' ? 'color:#ef5350' : '';
+    var tomorrowText = data.tomorrowPlan || '営業';
+    var tomorrowClass = (tomorrowText === '定休日' || tomorrowText === '臨時休業') ? 'color:#ef5350' : '';
     var hotpepperHtml = data.hotpepperUrl
       ? '<a class="hotpepper-btn" href="' + escHtml(data.hotpepperUrl) + '" target="_blank" rel="noopener">予約はこちら</a>'
       : '';
@@ -346,6 +349,13 @@
   }
 
   function renderMenu(data) {
+    // 休業日はメニューを非表示
+    if (data.isClosed) {
+      document.getElementById('menuMainSection').innerHTML = '<div class="menu-empty">本日は休業日のためメニューはございません</div>';
+      document.getElementById('menuObanzaiSection').innerHTML = '<div class="menu-empty">本日は休業日のためメニューはございません</div>';
+      return;
+    }
+
     // ---- メイン（サブカテゴリでグループ） ----
     var mainEl = document.getElementById('menuMainSection');
     var visibleMain = (data.main || []).filter(function(i) {

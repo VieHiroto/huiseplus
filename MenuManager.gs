@@ -26,9 +26,15 @@ var MCOL = {
 
 /**
  * 現在のメニュー一覧取得
- * @returns {Object} { main: [...], obanzai: [...] }
+ * 休業日（定休日・臨時休業）は空リストを返す
+ * @returns {Object} { main: [...], obanzai: [...], isClosed: bool }
  */
 function getMenu() {
+  var biz = getBusinessStatus();
+  if (biz.isClosed) {
+    return { main: [], obanzai: [], isClosed: true };
+  }
+
   var sheet = getSheet(SHEET_NAMES.MENU);
   var values = sheet.getDataRange().getValues();
 
@@ -62,7 +68,7 @@ function getMenu() {
   main.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
   obanzai.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
 
-  return { main: main, obanzai: obanzai };
+  return { main: main, obanzai: obanzai, isClosed: false };
 }
 
 /**

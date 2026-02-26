@@ -4,12 +4,14 @@
 // ============================================================
 
 var SHEET_NAMES = {
-  BUSINESS: '営業時間管理',
-  MENU: 'メニュー管理',
-  HANDOVER_MENU: '引き継ぎ_メニュー',
-  HANDOVER_GENERAL: '引き継ぎ_通常',
-  DAILY_SALES: '日売上',
-  MONTHLY_SALES: '月売上'
+  BUSINESS:        '営業設定',         // 待ち時間・URL等の雑設定
+  HOURS_WEEKLY:    '営業時間_曜日別',   // 曜日ごとの基本スケジュール
+  HOURS_SPECIAL:   '営業時間_特別日',   // 特別営業日・臨時休業等
+  MENU:            'メニュー管理',
+  HANDOVER_MENU:   '引き継ぎ_メニュー',
+  HANDOVER_GENERAL:'引き継ぎ_通常',
+  DAILY_SALES:     '日売上',
+  MONTHLY_SALES:   '月売上'
 };
 
 /**
@@ -20,6 +22,8 @@ function setupSpreadsheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   _setupBusinessSheet(ss);
+  _setupHoursWeeklySheet(ss);
+  _setupHoursSpecialSheet(ss);
   _setupMenuSheet(ss);
   _setupHandoverMenuSheet(ss);
   _setupHandoverGeneralSheet(ss);
@@ -32,28 +36,85 @@ function setupSpreadsheet() {
 
 // ---- 各シートセットアップ ----
 
+/**
+ * 営業設定シート（待ち時間・ホットペッパーURL等）
+ */
 function _setupBusinessSheet(ss) {
   var sheet = _getOrCreateSheet(ss, SHEET_NAMES.BUSINESS);
   sheet.clearContents();
 
   var data = [
     ['項目', '値', '備考'],
-    ['通常営業開始', '11:00', ''],
-    ['通常営業終了', '22:00', ''],
-    ['本日ステータス', '通常営業', '通常営業 / 貸切 / 臨時休業 / 特別時間'],
-    ['特別営業開始', '', '特別時間のみ使用'],
-    ['特別営業終了', '', '特別時間のみ使用'],
-    ['特別備考', '', '例：貸切のため外来不可'],
     ['待ち時間（分）', '0', '0=待ちなし'],
     ['ホットペッパーURL', '', '予約ページURL'],
-    ['明日の予定', '通常営業', '通常営業 / 貸切 / 休業 / 特別時間']
+    ['特別備考', '', 'お客様表示の補足メッセージ']
   ];
 
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data);
   sheet.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#f3f3f3');
   sheet.setColumnWidth(1, 180);
   sheet.setColumnWidth(2, 200);
-  sheet.setColumnWidth(3, 250);
+  sheet.setColumnWidth(3, 260);
+}
+
+/**
+ * 営業時間_曜日別シート（基本スケジュール）
+ */
+function _setupHoursWeeklySheet(ss) {
+  var sheet = _getOrCreateSheet(ss, SHEET_NAMES.HOURS_WEEKLY);
+  sheet.clearContents();
+
+  var headers = ['曜日', '区分', 'オープン', 'クローズ', 'ラストオーダー'];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers])
+    .setFontWeight('bold').setBackground('#fff3e0');
+
+  // デフォルト: 月曜定休、火〜日営業
+  var rows = [
+    ['月曜', '定休日', '', '', ''],
+    ['火曜', '営業', '11:00', '22:00', '21:30'],
+    ['水曜', '営業', '11:00', '22:00', '21:30'],
+    ['木曜', '営業', '11:00', '22:00', '21:30'],
+    ['金曜', '営業', '11:00', '22:00', '21:30'],
+    ['土曜', '営業', '11:00', '22:00', '21:30'],
+    ['日曜', '営業', '11:00', '22:00', '21:30']
+  ];
+  sheet.getRange(2, 1, rows.length, 5).setValues(rows);
+
+  // 区分の入力規則
+  var categoryRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(['営業', '定休日'], true)
+    .build();
+  sheet.getRange(2, 2, 7, 1).setDataValidation(categoryRule);
+
+  // 列幅
+  [80, 100, 100, 100, 130].forEach(function(w, i) {
+    sheet.setColumnWidth(i + 1, w);
+  });
+}
+
+/**
+ * 営業時間_特別日シート（特別営業・臨時休業等）
+ */
+function _setupHoursSpecialSheet(ss) {
+  var sheet = _getOrCreateSheet(ss, SHEET_NAMES.HOURS_SPECIAL);
+  sheet.clearContents();
+
+  var headers = ['日付', '区分', 'オープン', 'クローズ', 'ラストオーダー', '備考'];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers])
+    .setFontWeight('bold').setBackground('#e8f4f8');
+
+  // 区分の入力規則
+  var categoryRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(['特別営業', '臨時休業', '貸切'], true)
+    .build();
+  sheet.getRange(2, 2, 100, 1).setDataValidation(categoryRule);
+
+  // 日付列の書式
+  sheet.getRange(2, 1, 100, 1).setNumberFormat('yyyy/MM/dd');
+
+  [120, 100, 100, 100, 130, 220].forEach(function(w, i) {
+    sheet.setColumnWidth(i + 1, w);
+  });
 }
 
 function _setupMenuSheet(ss) {
@@ -63,15 +124,9 @@ function _setupMenuSheet(ss) {
   var headers = ['カテゴリ', 'サブカテゴリ', '品名', '説明', '量', '残数', '非表示', '並び順', '追加日時'];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers])
     .setFontWeight('bold').setBackground('#f3f3f3');
-  sheet.setColumnWidth(1, 120);
-  sheet.setColumnWidth(2, 130);
-  sheet.setColumnWidth(3, 200);
-  sheet.setColumnWidth(4, 250);
-  sheet.setColumnWidth(5, 100);
-  sheet.setColumnWidth(6, 80);
-  sheet.setColumnWidth(7, 80);
-  sheet.setColumnWidth(8, 80);
-  sheet.setColumnWidth(9, 180);
+  [120, 130, 200, 250, 100, 80, 80, 80, 180].forEach(function(w, i) {
+    sheet.setColumnWidth(i + 1, w);
+  });
 }
 
 function _setupHandoverMenuSheet(ss) {
@@ -81,12 +136,9 @@ function _setupHandoverMenuSheet(ss) {
   var headers = ['日付', 'カテゴリ', '品名', '残数', '仕込み必要', '備考'];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers])
     .setFontWeight('bold').setBackground('#f3f3f3');
-  sheet.setColumnWidth(1, 120);
-  sheet.setColumnWidth(2, 100);
-  sheet.setColumnWidth(3, 250);
-  sheet.setColumnWidth(4, 80);
-  sheet.setColumnWidth(5, 100);
-  sheet.setColumnWidth(6, 250);
+  [120, 100, 250, 80, 100, 250].forEach(function(w, i) {
+    sheet.setColumnWidth(i + 1, w);
+  });
 }
 
 function _setupHandoverGeneralSheet(ss) {
@@ -96,8 +148,8 @@ function _setupHandoverGeneralSheet(ss) {
   var headers = ['日付', '記録者', '本日の状況', '翌日への申し送り', '仕込み一覧'];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers])
     .setFontWeight('bold').setBackground('#f3f3f3');
-  [1,2,3,4,5].forEach(function(i, idx) {
-    sheet.setColumnWidth(idx+1, [120,100,200,250,250][idx]);
+  [120, 100, 200, 250, 250].forEach(function(w, i) {
+    sheet.setColumnWidth(i + 1, w);
   });
 }
 
@@ -108,10 +160,9 @@ function _setupDailySalesSheet(ss) {
   var headers = ['日付', '客数', '売上金額（円）', '取得日時'];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers])
     .setFontWeight('bold').setBackground('#f3f3f3');
-  sheet.setColumnWidth(1, 120);
-  sheet.setColumnWidth(2, 80);
-  sheet.setColumnWidth(3, 150);
-  sheet.setColumnWidth(4, 180);
+  [120, 80, 150, 180].forEach(function(w, i) {
+    sheet.setColumnWidth(i + 1, w);
+  });
 }
 
 function _setupMonthlySalesSheet(ss) {
@@ -121,8 +172,8 @@ function _setupMonthlySalesSheet(ss) {
   var headers = ['年月', '日', '曜日', '客数', '売上金額（円）'];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers])
     .setFontWeight('bold').setBackground('#f3f3f3');
-  [1,2,3,4,5].forEach(function(i, idx) {
-    sheet.setColumnWidth(idx+1, [100,60,70,80,150][idx]);
+  [100, 60, 70, 80, 150].forEach(function(w, i) {
+    sheet.setColumnWidth(i + 1, w);
   });
 }
 
@@ -141,10 +192,11 @@ function getSheet(name) {
 }
 
 /**
- * 営業時間管理シートから指定項目の値を取得
+ * 営業設定シートから指定項目の値を取得
  */
 function getBusinessValue(key) {
   var sheet = getSheet(SHEET_NAMES.BUSINESS);
+  if (!sheet) return null;
   var data = sheet.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
     if (data[i][0] === key) return data[i][1];
@@ -153,10 +205,11 @@ function getBusinessValue(key) {
 }
 
 /**
- * 営業時間管理シートの指定項目を更新
+ * 営業設定シートの指定項目を更新
  */
 function setBusinessValue(key, value) {
   var sheet = getSheet(SHEET_NAMES.BUSINESS);
+  if (!sheet) return false;
   var data = sheet.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
     if (data[i][0] === key) {

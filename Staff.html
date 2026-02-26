@@ -492,46 +492,19 @@
 ==================================================== -->
 <div class="tab-panel" id="tab-business">
 
+  <!-- 本日の状況（読み取り専用） -->
   <div class="card">
-    <div class="card-title">本日のステータス</div>
-    <div class="status-select-row" id="statusOptions">
-      <div class="status-option" data-s="通常営業">通常営業</div>
-      <div class="status-option" data-s="貸切">貸切</div>
-      <div class="status-option" data-s="臨時休業">臨時休業</div>
-      <div class="status-option" data-s="特別時間">特別時間</div>
+    <div class="card-title">本日のスケジュール</div>
+    <div id="todayStatusInfo" style="font-size:0.9rem; color:#37474f; padding:4px 0;">
+      <span class="spinner-sm"></span> 読み込み中...
+    </div>
+    <div style="margin-top:10px; font-size:0.78rem; color:#aaa;">
+      ※ 営業時間・定休日は「営業時間_曜日別」シートで管理してください。<br>
+      　 臨時休業・特別営業日は「営業時間_特別日」シートに追加してください。
     </div>
   </div>
 
-  <div class="card" id="specialHoursCard" style="display:none">
-    <div class="card-title">特別営業時間</div>
-    <div style="display:flex; gap:10px;">
-      <div style="flex:1">
-        <label>開始時間</label>
-        <input type="time" id="specialOpen">
-      </div>
-      <div style="flex:1">
-        <label>終了時間</label>
-        <input type="time" id="specialClose">
-      </div>
-    </div>
-    <label>備考（お客様表示）</label>
-    <input type="text" id="specialNote" placeholder="例：貸切のため外来不可">
-  </div>
-
-  <div class="card">
-    <div class="card-title">通常営業時間</div>
-    <div style="display:flex; gap:10px;">
-      <div style="flex:1">
-        <label>開始</label>
-        <input type="time" id="normalOpen">
-      </div>
-      <div style="flex:1">
-        <label>終了</label>
-        <input type="time" id="normalClose">
-      </div>
-    </div>
-  </div>
-
+  <!-- 待ち時間 -->
   <div class="card">
     <div class="card-title">現在の待ち時間</div>
     <div class="wait-slider-row">
@@ -543,16 +516,14 @@
     <div style="margin-top:8px; font-size:0.8rem; color:#aaa">0分 = 待ちなし（表示されません）</div>
   </div>
 
+  <!-- 特別備考 -->
   <div class="card">
-    <div class="card-title">明日の予定</div>
-    <select id="tomorrowPlan">
-      <option value="通常営業">通常営業</option>
-      <option value="貸切">貸切</option>
-      <option value="休業">休業</option>
-      <option value="特別時間">特別時間</option>
-    </select>
+    <div class="card-title">お客様向け補足メッセージ</div>
+    <input type="text" id="specialNote" placeholder="例：本日は駐車場が混雑しています">
+    <div style="font-size:0.78rem; color:#aaa; margin-top:-8px;">空欄にすると表示されません</div>
   </div>
 
+  <!-- ホットペッパー -->
   <div class="card">
     <div class="card-title">ホットペッパー予約URL</div>
     <input type="text" id="hotpepperUrl" placeholder="https://...">
@@ -841,46 +812,33 @@ function buildItemRow(item) {
 // ================================================
 // タブ2: 営業状況
 // ================================================
-var currentStatus = '通常営業';
-
 function loadBusiness() {
   google.script.run
     .withSuccessHandler(function(json) {
       var d = JSON.parse(json);
-      currentStatus = d.status || '通常営業';
-      setStatusUI(currentStatus);
 
-      var to = function(t) { return t ? String(t).substring(0,5) : ''; };
-      document.getElementById('normalOpen').value  = to(d.normalOpen);
-      document.getElementById('normalClose').value = to(d.normalClose);
-      document.getElementById('specialOpen').value  = to(d.specialOpen);
-      document.getElementById('specialClose').value = to(d.specialClose);
-      document.getElementById('specialNote').value  = d.specialNote || '';
+      // 今日のスケジュール表示
+      var infoEl = document.getElementById('todayStatusInfo');
+      var statusLabel = {
+        '営業': '営業', '定休日': '定休日', '臨時休業': '臨時休業',
+        '貸切': '貸切', '特別営業': '特別営業'
+      }[d.status] || d.status;
+      var statusColor = (d.isClosed) ? '#e53935' : (d.isCharter ? '#7b1fa2' : '#2e7d32');
+      var hoursText = (d.openTime && d.closeTime)
+        ? d.openTime + ' 〜 ' + d.closeTime + (d.lastOrder ? '　LO ' + d.lastOrder : '')
+        : '';
+      infoEl.innerHTML =
+        '<span style="font-weight:bold;color:' + statusColor + '">' + escHtml(statusLabel) + '</span>' +
+        (hoursText ? '<span style="margin-left:12px;color:#546e7a">' + escHtml(hoursText) + '</span>' : '') +
+        (d.isSpecialDay ? '<span style="margin-left:8px;font-size:0.75rem;background:#fff3e0;color:#e65100;border-radius:4px;padding:1px 6px">特別日</span>' : '');
+
+      // 編集フィールド
+      document.getElementById('specialNote').value  = d.specialNote  || '';
       document.getElementById('waitSlider').value   = d.waitMin || 0;
       document.getElementById('waitDisplay').textContent = d.waitMin || 0;
       document.getElementById('hotpepperUrl').value = d.hotpepperUrl || '';
-
-      var sel = document.getElementById('tomorrowPlan');
-      for (var i = 0; i < sel.options.length; i++) {
-        if (sel.options[i].value === d.tomorrowPlan) { sel.selectedIndex = i; break; }
-      }
     })
     .apiGetBusinessStatus();
-}
-
-document.querySelectorAll('.status-option').forEach(function(opt) {
-  opt.addEventListener('click', function() {
-    setStatusUI(opt.dataset.s);
-  });
-});
-
-function setStatusUI(status) {
-  currentStatus = status;
-  document.querySelectorAll('.status-option').forEach(function(o) {
-    o.classList.toggle('active', o.dataset.s === status);
-  });
-  document.getElementById('specialHoursCard').style.display =
-    (status === '特別時間' || status === '貸切') ? 'block' : 'none';
 }
 
 function updateWaitDisplay() {
@@ -889,21 +847,16 @@ function updateWaitDisplay() {
 
 function saveBusiness() {
   var params = {
-    status:       currentStatus,
-    normalOpen:   document.getElementById('normalOpen').value,
-    normalClose:  document.getElementById('normalClose').value,
-    specialOpen:  document.getElementById('specialOpen').value,
-    specialClose: document.getElementById('specialClose').value,
-    specialNote:  document.getElementById('specialNote').value,
     waitMin:      parseInt(document.getElementById('waitSlider').value, 10),
-    hotpepperUrl: document.getElementById('hotpepperUrl').value,
-    tomorrowPlan: document.getElementById('tomorrowPlan').value
+    specialNote:  document.getElementById('specialNote').value,
+    hotpepperUrl: document.getElementById('hotpepperUrl').value
   };
 
   google.script.run
     .withSuccessHandler(function(json) {
       var res = JSON.parse(json);
       showMsg('businessMsg', res.success ? '保存しました' : (res.error || 'エラー'), res.success);
+      if (res.success) loadBusiness();
     })
     .apiUpdateBusinessStatus(JSON.stringify(params));
 }

@@ -3,68 +3,175 @@
 // 営業状況管理
 // ============================================================
 
-var BUSINESS_STATUS = {
-  NORMAL: '通常営業',
+// 区分定数
+var BUSINESS_CATEGORY = {
+  OPEN:    '営業',
+  HOLIDAY: '定休日',
+  CLOSED:  '臨時休業',
   CHARTER: '貸切',
-  CLOSED: '臨時休業',
-  SPECIAL: '特別時間'
+  SPECIAL: '特別営業'
 };
 
+// getDay() の 0〜6 に対応する曜日名
+var _DAY_NAMES = ['日曜', '月曜', '火曜', '水曜', '木曜', '金曜', '土曜'];
+
 /**
- * 現在の営業状況を取得（お客様表示・スタッフ表示共通）
- * @returns {Object} 営業状況オブジェクト
+ * 今日の営業状況を取得（顧客表示・スタッフ表示共通）
+ * @returns {Object}
  */
 function getBusinessStatus() {
-  var status        = getBusinessValue('本日ステータス') || BUSINESS_STATUS.NORMAL;
-  var normalOpen    = getBusinessValue('通常営業開始') || '11:00';
-  var normalClose   = getBusinessValue('通常営業終了') || '22:00';
-  var specialOpen   = getBusinessValue('特別営業開始') || '';
-  var specialClose  = getBusinessValue('特別営業終了') || '';
-  var specialNote   = getBusinessValue('特別備考') || '';
-  var waitMin       = parseInt(getBusinessValue('待ち時間（分）') || '0', 10);
-  var hotpepperUrl  = getBusinessValue('ホットペッパーURL') || '';
-  var tomorrowPlan  = getBusinessValue('明日の予定') || BUSINESS_STATUS.NORMAL;
+  var todayHours    = _getTodayHours();
+  var tomorrowHours = _getHoursForDate(_addDays(new Date(), 1));
+  var category      = todayHours.category;
 
-  var displayOpen  = normalOpen;
-  var displayClose = normalClose;
+  var isClosed  = (category === BUSINESS_CATEGORY.HOLIDAY ||
+                   category === BUSINESS_CATEGORY.CLOSED);
+  var isCharter = (category === BUSINESS_CATEGORY.CHARTER);
 
-  if (status === BUSINESS_STATUS.SPECIAL && specialOpen) {
-    displayOpen  = specialOpen;
-    displayClose = specialClose;
-  }
+  var waitMin      = parseInt(getBusinessValue('待ち時間（分）') || '0', 10);
+  var hotpepperUrl = getBusinessValue('ホットペッパーURL') || '';
+  var specialNote  = todayHours.note || getBusinessValue('特別備考') || '';
 
   return {
-    status: status,
-    normalOpen: normalOpen,
-    normalClose: normalClose,
-    specialOpen: specialOpen,
-    specialClose: specialClose,
-    specialNote: specialNote,
-    displayOpen: displayOpen,
-    displayClose: displayClose,
-    waitMin: waitMin,
-    hasWait: waitMin > 0,
+    status:       category,
+    isClosed:     isClosed,
+    isCharter:    isCharter,
+    openTime:     todayHours.open      || '',
+    closeTime:    todayHours.close     || '',
+    lastOrder:    todayHours.lastOrder || '',
+    specialNote:  specialNote,
+    waitMin:      waitMin,
+    hasWait:      waitMin > 0,
     hotpepperUrl: hotpepperUrl,
-    tomorrowPlan: tomorrowPlan,
-    isOpen: _isCurrentlyOpen(status, displayOpen, displayClose)
+    tomorrowPlan: tomorrowHours.category,
+    isOpen:       !isClosed && !isCharter && _isCurrentlyOpen(todayHours.open, todayHours.close),
+    isSpecialDay: todayHours.isSpecial
   };
 }
 
 /**
- * 営業ステータスを更新（スタッフ操作）
+ * 今日の営業時間情報を取得
+ */
+function _getTodayHours() {
+  return _getHoursForDate(new Date());
+}
+
+/**
+ * 指定日の営業時間情報を取得
+ * 特別営業日シートを優先し、なければ曜日別シートを参照
+ */
+function _getHoursForDate(date) {
+  var special = _checkSpecialDays(date);
+  if (special) return special;
+  return _getWeeklyHours(date);
+}
+
+/**
+ * 特別営業日シートで該当日を検索
+ */
+function _checkSpecialDays(date) {
+  var sheet = getSheet(SHEET_NAMES.HOURS_SPECIAL);
+  if (!sheet) return null;
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return null;
+
+  var todayStr = Utilities.formatDate(date, 'Asia/Tokyo', 'yyyy/MM/dd');
+
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    if (!row[0]) continue;
+    var rowDateStr;
+    try {
+      rowDateStr = Utilities.formatDate(new Date(row[0]), 'Asia/Tokyo', 'yyyy/MM/dd');
+    } catch (e) {
+      continue;
+    }
+    if (rowDateStr === todayStr) {
+      return {
+        category:  String(row[1] || BUSINESS_CATEGORY.SPECIAL),
+        open:      _formatTime(row[2]),
+        close:     _formatTime(row[3]),
+        lastOrder: _formatTime(row[4]),
+        note:      row[5] ? String(row[5]) : '',
+        isSpecial: true
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * 曜日別シートから今日の設定を取得
+ */
+function _getWeeklyHours(date) {
+  var sheet = getSheet(SHEET_NAMES.HOURS_WEEKLY);
+  if (!sheet) {
+    return { category: BUSINESS_CATEGORY.OPEN, open: '11:00', close: '22:00', lastOrder: '21:30', note: '', isSpecial: false };
+  }
+
+  var targetDay = _DAY_NAMES[date.getDay()];
+  var values    = sheet.getDataRange().getValues();
+
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    if (row[0] === targetDay) {
+      return {
+        category:  String(row[1] || BUSINESS_CATEGORY.OPEN),
+        open:      _formatTime(row[2]),
+        close:     _formatTime(row[3]),
+        lastOrder: _formatTime(row[4]),
+        note:      '',
+        isSpecial: false
+      };
+    }
+  }
+
+  // 見つからない場合のデフォルト
+  return { category: BUSINESS_CATEGORY.OPEN, open: '11:00', close: '22:00', lastOrder: '21:30', note: '', isSpecial: false };
+}
+
+/**
+ * スプレッドシートの時間値を "HH:MM" 文字列に変換
+ */
+function _formatTime(val) {
+  if (val === null || val === undefined || val === '') return '';
+  if (typeof val === 'string') {
+    if (/^\d{1,2}:\d{2}/.test(val)) return val.substring(0, 5);
+    return '';
+  }
+  if (val instanceof Date) {
+    var h = val.getHours();
+    var m = val.getMinutes();
+    return ('0' + h).slice(-2) + ':' + ('0' + m).slice(-2);
+  }
+  // スプレッドシートの時間は 0〜1 の小数（例: 0.458333 = 11:00）
+  if (typeof val === 'number' && val >= 0 && val < 1) {
+    var totalMin = Math.round(val * 1440);
+    var hh = Math.floor(totalMin / 60) % 24;
+    var mm = totalMin % 60;
+    return ('0' + hh).slice(-2) + ':' + ('0' + mm).slice(-2);
+  }
+  return '';
+}
+
+/**
+ * N日後の Date を返す
+ */
+function _addDays(date, n) {
+  var d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+/**
+ * 雑設定（待ち時間・ホットペッパーURL・特別備考）を更新
  */
 function updateBusinessStatus(params) {
   try {
-    if (params.status)       setBusinessValue('本日ステータス', params.status);
-    if (params.specialOpen)  setBusinessValue('特別営業開始', params.specialOpen);
-    if (params.specialClose) setBusinessValue('特別営業終了', params.specialClose);
-    if (params.specialNote !== undefined) setBusinessValue('特別備考', params.specialNote);
-    if (params.waitMin !== undefined)     setBusinessValue('待ち時間（分）', params.waitMin);
+    if (params.waitMin      !== undefined) setBusinessValue('待ち時間（分）',   params.waitMin);
     if (params.hotpepperUrl !== undefined) setBusinessValue('ホットペッパーURL', params.hotpepperUrl);
-    if (params.tomorrowPlan) setBusinessValue('明日の予定', params.tomorrowPlan);
-    if (params.normalOpen)   setBusinessValue('通常営業開始', params.normalOpen);
-    if (params.normalClose)  setBusinessValue('通常営業終了', params.normalClose);
-
+    if (params.specialNote  !== undefined) setBusinessValue('特別備考',         params.specialNote);
     return { success: true };
   } catch (e) {
     return { success: false, error: e.message };
@@ -82,23 +189,20 @@ function updateWaitTime(minutes) {
 /**
  * 現在営業中かどうか判定
  */
-function _isCurrentlyOpen(status, openTime, closeTime) {
-  if (status === BUSINESS_STATUS.CLOSED || status === BUSINESS_STATUS.CHARTER) {
-    return false;
-  }
+function _isCurrentlyOpen(openTime, closeTime) {
+  if (!openTime || !closeTime) return false;
 
-  var now = new Date();
+  var now        = new Date();
   var openParts  = openTime.split(':');
   var closeParts = closeTime.split(':');
 
-  var openMinutes  = parseInt(openParts[0], 10) * 60 + parseInt(openParts[1], 10);
-  var closeMinutes = parseInt(closeParts[0], 10) * 60 + parseInt(closeParts[1], 10);
-  var nowMinutes   = now.getHours() * 60 + now.getMinutes();
+  var openMin  = parseInt(openParts[0], 10) * 60 + parseInt(openParts[1], 10);
+  var closeMin = parseInt(closeParts[0], 10) * 60 + parseInt(closeParts[1], 10);
+  var nowMin   = now.getHours() * 60 + now.getMinutes();
 
   // 日をまたぐケース（例: 23:00 〜 02:00）
-  if (closeMinutes < openMinutes) {
-    return nowMinutes >= openMinutes || nowMinutes < closeMinutes;
+  if (closeMin < openMin) {
+    return nowMin >= openMin || nowMin < closeMin;
   }
-
-  return nowMinutes >= openMinutes && nowMinutes < closeMinutes;
+  return nowMin >= openMin && nowMin < closeMin;
 }
