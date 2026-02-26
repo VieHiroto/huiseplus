@@ -204,29 +204,3 @@ function moveMenuItem(rowIndex, direction) {
   return { success: true, menu: getMenu() };
 }
 
-/**
- * メニューを全クリア（翌日リセット用）
- */
-function clearAllMenu() {
-  var sheet = getSheet(SHEET_NAMES.MENU);
-  var lastRow = sheet.getLastRow();
-  if (lastRow > 1) {
-    sheet.deleteRows(2, lastRow - 1);
-  }
-  return { success: true };
-}
-
-/**
- * カテゴリ別クリア
- */
-function clearMenuByCategory(category) {
-  var sheet = getSheet(SHEET_NAMES.MENU);
-  var values = sheet.getDataRange().getValues();
-
-  for (var i = values.length - 1; i >= 1; i--) {
-    if (values[i][MCOL.CATEGORY] === category) {
-      sheet.deleteRow(i + 1);
-    }
-  }
-  return { success: true, menu: getMenu() };
-}

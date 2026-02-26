@@ -77,16 +77,6 @@ function apiMoveMenuItem(rowIndex, direction) {
   return JSON.stringify(moveMenuItem(parseInt(rowIndex, 10), direction));
 }
 
-/** [スタッフ] カテゴリ別クリア */
-function apiClearMenuByCategory(category) {
-  return JSON.stringify(clearMenuByCategory(category));
-}
-
-/** [スタッフ] メニュー全クリア */
-function apiClearMenu() {
-  return JSON.stringify(clearAllMenu());
-}
-
 /** [スタッフ] 本日の売上取得（スマレジ） */
 function apiGetTodaySales() {
   return JSON.stringify(getDailySalesReport());

@@ -613,10 +613,6 @@
     <div id="menuBoard">
       <div class="spinner-sm"></div> 読み込み中...
     </div>
-    <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
-      <button class="btn btn-grey" onclick="clearCategory('メイン')">メイン全消し</button>
-      <button class="btn btn-grey" onclick="clearCategory('おばんざい')">おばんざい全消し</button>
-    </div>
   </div>
 </div>
 
@@ -898,13 +894,6 @@ function deleteItem(rowIndex) {
       if (res.success) renderMenuBoard(res.menu);
     })
     .apiDeleteMenuItem(rowIndex);
-}
-
-function clearCategory(cat) {
-  if (!confirm(cat + 'のメニューを全部消しますか？')) return;
-  google.script.run
-    .withSuccessHandler(function() { loadMenu(); })
-    .apiClearMenuByCategory(cat);
 }
 
 function loadMenu() {
