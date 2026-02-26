@@ -17,15 +17,22 @@
 //   または setupSmaregiCredentials() を一度実行して登録することも可能。
 // ============================================================
 
-var _smaregiProps = PropertiesService.getScriptProperties();
-var SMAREGI_CONFIG = {
-  CONTRACT_ID:   _smaregiProps.getProperty('SMAREGI_CONTRACT_ID')   || '',
-  CLIENT_ID:     _smaregiProps.getProperty('SMAREGI_CLIENT_ID')     || '',
-  CLIENT_SECRET: _smaregiProps.getProperty('SMAREGI_CLIENT_SECRET') || '',
-  SCOPE:         'pos.transactions:read',
-  TOKEN_URL:     'https://id.smaregi.jp/app/{CONTRACT_ID}/token',
-  BASE_URL:      'https://api.smaregi.jp'
-};
+// SMAREGI_CONFIG は関数内で遅延取得（トップレベルの PropertiesService 呼び出しを避ける）
+var SMAREGI_CONFIG = null;
+
+function _getSmaregiConfig() {
+  if (SMAREGI_CONFIG) return SMAREGI_CONFIG;
+  var props = PropertiesService.getScriptProperties();
+  SMAREGI_CONFIG = {
+    CONTRACT_ID:   props.getProperty('SMAREGI_CONTRACT_ID')   || '',
+    CLIENT_ID:     props.getProperty('SMAREGI_CLIENT_ID')     || '',
+    CLIENT_SECRET: props.getProperty('SMAREGI_CLIENT_SECRET') || '',
+    SCOPE:         'pos.transactions:read',
+    TOKEN_URL:     'https://id.smaregi.jp/app/{CONTRACT_ID}/token',
+    BASE_URL:      'https://api.smaregi.jp'
+  };
+  return SMAREGI_CONFIG;
+}
 
 /**
  * スマレジ認証情報をスクリプトプロパティに保存する。
@@ -54,11 +61,12 @@ function _getAccessToken() {
   var cached = cache.get('smaregi_access_token');
   if (cached) return cached;
 
-  var tokenUrl = SMAREGI_CONFIG.TOKEN_URL.replace('{CONTRACT_ID}', SMAREGI_CONFIG.CONTRACT_ID);
+  var cfg = _getSmaregiConfig();
+  var tokenUrl = cfg.TOKEN_URL.replace('{CONTRACT_ID}', cfg.CONTRACT_ID);
 
   // Basic認証: Base64(clientId:clientSecret)
   var credentials = Utilities.base64Encode(
-    SMAREGI_CONFIG.CLIENT_ID + ':' + SMAREGI_CONFIG.CLIENT_SECRET
+    cfg.CLIENT_ID + ':' + cfg.CLIENT_SECRET
   );
 
   var options = {
@@ -67,7 +75,7 @@ function _getAccessToken() {
       'Authorization': 'Basic ' + credentials,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    payload: 'grant_type=client_credentials&scope=' + encodeURIComponent(SMAREGI_CONFIG.SCOPE),
+    payload: 'grant_type=client_credentials&scope=' + encodeURIComponent(cfg.SCOPE),
     muteHttpExceptions: true
   };
 
@@ -107,7 +115,8 @@ function _smaregiRequest(endpoint, params) {
     return null;
   }
 
-  var url = SMAREGI_CONFIG.BASE_URL + '/' + SMAREGI_CONFIG.CONTRACT_ID + endpoint;
+  var cfg = _getSmaregiConfig();
+  var url = cfg.BASE_URL + '/' + cfg.CONTRACT_ID + endpoint;
 
   if (params) {
     var queryStr = Object.keys(params).map(function(k) {

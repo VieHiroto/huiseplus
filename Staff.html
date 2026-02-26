@@ -750,6 +750,10 @@ function loadMenu() {
     .withSuccessHandler(function(json) {
       renderMenuBoard(JSON.parse(json));
     })
+    .withFailureHandler(function(e) {
+      document.getElementById('menuBoard').innerHTML =
+        '<div style="color:#e53935;font-size:0.85rem">読み込みエラー: ' + escHtml(String(e)) + '</div>';
+    })
     .apiGetMenu();
 }
 
