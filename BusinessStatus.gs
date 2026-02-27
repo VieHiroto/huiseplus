@@ -31,6 +31,7 @@ function getBusinessStatus() {
   var waitMin      = parseInt(getBusinessValue('待ち時間（分）') || '0', 10);
   var hotpepperUrl = getBusinessValue('ホットペッパーURL') || '';
   var specialNote  = todayHours.note || getBusinessValue('特別備考') || '';
+  var menuUrl      = getBusinessValue('メニューURL') || '';
 
   return {
     status:       category,
@@ -43,6 +44,7 @@ function getBusinessStatus() {
     waitMin:      waitMin,
     hasWait:      waitMin > 0,
     hotpepperUrl: hotpepperUrl,
+    menuUrl:      menuUrl,
     tomorrowPlan: tomorrowHours.category,
     isOpen:       !isClosed && !isCharter && _isCurrentlyOpen(todayHours.open, todayHours.close),
     isSpecialDay: todayHours.isSpecial

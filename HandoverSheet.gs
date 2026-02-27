@@ -72,7 +72,7 @@ function saveDayHandover(params) {
   ];
 
   for (var i = 1; i < values.length; i++) {
-    if (String(values[i][0]).substring(0, 10) === today) {
+    if (_parseDateCell(values[i][0]) === today) {
       sheet.getRange(i + 1, 1, 1, rowData.length).setValues([rowData]);
       return { success: true };
     }
@@ -94,7 +94,7 @@ function getDayHandoverToday() {
   var values = sheet.getDataRange().getValues();
 
   for (var i = 1; i < values.length; i++) {
-    if (String(values[i][0]).substring(0, 10) === today) {
+    if (_parseDateCell(values[i][0]) === today) {
       var activeIds = [];
       try { activeIds = JSON.parse(String(values[i][1] || '[]')); } catch (e) {}
       return {
@@ -143,7 +143,7 @@ function saveNightHandover(params) {
   ];
 
   for (var i = 1; i < values.length; i++) {
-    if (String(values[i][0]).substring(0, 10) === today) {
+    if (_parseDateCell(values[i][0]) === today) {
       sheet.getRange(i + 1, 1, 1, rowData.length).setValues([rowData]);
       return { success: true };
     }
@@ -164,7 +164,7 @@ function getNightHandoverToday() {
   var values = sheet.getDataRange().getValues();
 
   for (var i = 1; i < values.length; i++) {
-    if (String(values[i][0]).substring(0, 10) === today) {
+    if (_parseDateCell(values[i][0]) === today) {
       var row = values[i];
       var mainSoldOut = [], obanzaiCarryOver = [], completedIds = [];
       try { mainSoldOut      = JSON.parse(String(row[5] || '[]')); } catch (e) {}
@@ -282,7 +282,7 @@ function getMorningCheckData() {
   if (daySheet) {
     var dayValues = daySheet.getDataRange().getValues();
     for (var i = 1; i < dayValues.length; i++) {
-      if (String(dayValues[i][0]).substring(0, 10) === night.date) {
+      if (_parseDateCell(dayValues[i][0]) === night.date) {
         try { dayActiveIds = JSON.parse(String(dayValues[i][1] || '[]')); } catch (e) {}
         break;
       }
@@ -313,4 +313,13 @@ function _formatDateHandover(date) {
   return date.getFullYear() + '-' +
     _pad(date.getMonth() + 1) + '-' +
     _pad(date.getDate());
+}
+
+/**
+ * Sheetsのセル値（Date型または文字列）を "YYYY-MM-DD" 文字列に変換
+ * Google SheetsはAPIで書き込んだ日付文字列をDateオブジェクトに変換することがあるため
+ */
+function _parseDateCell(val) {
+  if (val instanceof Date) return _formatDateHandover(val);
+  return String(val).substring(0, 10).replace(/\//g, '-');
 }

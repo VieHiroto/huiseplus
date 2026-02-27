@@ -32,7 +32,10 @@ var MCOL = {
 function getMenu() {
   var biz = getBusinessStatus();
   if (biz.isClosed) {
-    return { main: [], obanzai: [], isClosed: true };
+    return { main: [], obanzai: [], isClosed: true, isCharter: false, isOpen: false };
+  }
+  if (biz.isCharter) {
+    return { main: [], obanzai: [], isClosed: false, isCharter: true, isOpen: false };
   }
 
   var sheet = getSheet(SHEET_NAMES.MENU);
@@ -68,7 +71,7 @@ function getMenu() {
   main.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
   obanzai.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
 
-  return { main: main, obanzai: obanzai, isClosed: false };
+  return { main: main, obanzai: obanzai, isClosed: false, isCharter: false, isOpen: biz.isOpen };
 }
 
 /**

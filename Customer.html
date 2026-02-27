@@ -126,6 +126,30 @@
       margin-left: auto;
     }
 
+    .menu-link-btn {
+      display: block;
+      background: #37474f;
+      color: #d4a843;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      text-decoration: none;
+      text-align: center;
+      margin-top: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    .menu-link-btn:hover { opacity: 0.85; }
+
+    .come-again {
+      font-size: 0.88rem;
+      color: #a08060;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #3a3a3a;
+      line-height: 1.7;
+    }
+
     /* ---- メニュー ---- */
     .section-title {
       font-size: 0.7rem;
@@ -315,10 +339,22 @@
 
     var noteHtml = data.specialNote ? '<div class="status-note">' + escHtml(data.specialNote) + '</div>' : '';
 
+    // 休業・貸切時は来店促進メッセージを表示
+    var comeAgainHtml = '';
+    if (data.isClosed || data.isCharter) {
+      var msg = data.isClosed
+        ? 'またのご来店、楽しみにお待ちしています。\nぜひ次回もお気軽にお越しください。'
+        : '本日はお席のご案内ができませんが、またのご来店を心よりお待ちしています。';
+      comeAgainHtml = '<div class="come-again">' + escHtml(msg).replace(/\n/g, '<br>') + '</div>';
+    }
+
     var tomorrowText = data.tomorrowPlan || '営業';
     var tomorrowClass = (tomorrowText === '定休日' || tomorrowText === '臨時休業') ? 'color:#ef5350' : '';
     var hotpepperHtml = data.hotpepperUrl
       ? '<a class="hotpepper-btn" href="' + escHtml(data.hotpepperUrl) + '" target="_blank" rel="noopener">予約はこちら</a>'
+      : '';
+    var menuLinkHtml = data.menuUrl
+      ? '<a class="menu-link-btn" href="' + escHtml(data.menuUrl) + '" target="_blank" rel="noopener">メニューを見る</a>'
       : '';
 
     section.innerHTML =
@@ -327,11 +363,13 @@
       hoursHtml +
       noteHtml +
       waitHtml +
+      comeAgainHtml +
       '<div class="tomorrow-row">' +
         '<span>明日の予定</span>' +
         '<span class="tomorrow-badge" style="' + tomorrowClass + '">' + escHtml(tomorrowText) + '</span>' +
         hotpepperHtml +
-      '</div>';
+      '</div>' +
+      menuLinkHtml;
   }
 
   // ---- メニュー描画 ----
@@ -349,10 +387,19 @@
   }
 
   function renderMenu(data) {
-    // 休業日はメニューを非表示
-    if (data.isClosed) {
-      document.getElementById('menuMainSection').innerHTML = '<div class="menu-empty">本日は休業日のためメニューはございません</div>';
-      document.getElementById('menuObanzaiSection').innerHTML = '<div class="menu-empty">本日は休業日のためメニューはございません</div>';
+    // 営業中以外はメニューを非表示
+    if (data.isClosed || data.isCharter || data.isOpen === false) {
+      var msg;
+      if (data.isClosed) {
+        msg = '今日はお休みをいただいています。またのお越しをお待ちしています';
+      } else if (data.isCharter) {
+        msg = '本日は貸切のためメニューのご案内ができません';
+      } else {
+        msg = 'ただいま準備中です。もう少しお待ちください';
+      }
+      var emptyHtml = '<div class="menu-empty">' + msg + '</div>';
+      document.getElementById('menuMainSection').innerHTML = emptyHtml;
+      document.getElementById('menuObanzaiSection').innerHTML = emptyHtml;
       return;
     }
 

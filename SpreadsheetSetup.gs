@@ -51,7 +51,8 @@ function _setupBusinessSheet(ss) {
     ['項目', '値', '備考'],
     ['待ち時間（分）', '0', '0=待ちなし'],
     ['ホットペッパーURL', '', '予約ページURL'],
-    ['特別備考', '', 'お客様表示の補足メッセージ']
+    ['特別備考', '', 'お客様表示の補足メッセージ'],
+    ['メニューURL', '', 'メニューページのURL（お客様ページに表示）']
   ];
 
   sheet.getRange(1, 1, data.length, data[0].length).setValues(data);
