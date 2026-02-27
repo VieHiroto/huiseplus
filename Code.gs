@@ -12,11 +12,22 @@
 function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : 'customer';
 
+  // データAPIモード: fetch() 経由（Instagram IAB など google.script.run が使えない環境向け）
+  if (page === 'data') {
+    var payload = JSON.stringify({
+      business: getBusinessStatus(),
+      menu:     getMenu()
+    });
+    return ContentService.createTextOutput(payload)
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   var template;
   if (page === 'staff') {
     template = HtmlService.createTemplateFromFile('Staff');
   } else {
     template = HtmlService.createTemplateFromFile('Customer');
+    template.scriptUrl = ScriptApp.getService().getUrl();
   }
 
   return template.evaluate()

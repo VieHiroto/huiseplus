@@ -480,23 +480,36 @@
   }
 
   // ---- データ取得 ----
+  // fetch() を優先（Instagram IABなど google.script.run が使えない環境でも動作）
+  var SCRIPT_URL = '<?= scriptUrl ?>';
+
   function loadData() {
-    google.script.run
-      .withSuccessHandler(function(json) {
-        renderBusiness(JSON.parse(json));
+    fetch(SCRIPT_URL + '?page=data')
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        renderBusiness(data.business);
+        renderMenu(data.menu);
       })
+      .catch(function() {
+        // フォールバック: google.script.run（通常ブラウザ用）
+        _loadViaGas();
+      });
+  }
+
+  function _loadViaGas() {
+    google.script.run
+      .withSuccessHandler(function(json) { renderBusiness(JSON.parse(json)); })
       .withFailureHandler(function() {
-        document.getElementById('businessSection').innerHTML = '<div style="color:#ef5350">情報の取得に失敗しました</div>';
+        document.getElementById('businessSection').innerHTML =
+          '<div style="color:#ef5350">情報の取得に失敗しました</div>';
       })
       .apiGetBusinessStatus();
 
     google.script.run
-      .withSuccessHandler(function(json) {
-        renderMenu(JSON.parse(json));
-      })
+      .withSuccessHandler(function(json) { renderMenu(JSON.parse(json)); })
       .withFailureHandler(function() {
         var msg = '<div style="color:#ef5350">情報の取得に失敗しました</div>';
-        document.getElementById('menuMainSection').innerHTML = msg;
+        document.getElementById('menuMainSection').innerHTML    = msg;
         document.getElementById('menuObanzaiSection').innerHTML = msg;
       })
       .apiGetMenu();
