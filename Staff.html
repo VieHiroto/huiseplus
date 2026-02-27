@@ -632,6 +632,7 @@
     <div class="toggle-group">
       <div class="toggle-btn active" id="toggleMain" onclick="setCategory('メイン')">メイン</div>
       <div class="toggle-btn" id="toggleObanzai" onclick="setCategory('おばんざい')">おばんざい</div>
+      <div class="toggle-btn" id="toggleOsusume" onclick="setCategory('その他おすすめ')">その他おすすめ</div>
     </div>
 
     <!-- サブカテゴリ（メインのみ） -->
@@ -643,6 +644,20 @@
         <div class="sub-cat-btn" onclick="setSubCat('大人のお子様')">大人のお子様</div>
         <div class="sub-cat-btn" onclick="setSubCat('ヘルシー')">ヘルシー</div>
         <div class="sub-cat-btn" onclick="setSubCat('おすすめ')">おすすめ</div>
+      </div>
+    </div>
+
+    <!-- サブカテゴリ（その他おすすめのみ） -->
+    <div id="osusumeSubCatArea" style="display:none">
+      <label>種類</label>
+      <div class="sub-cat-group" id="osusumeSubCatGroup">
+        <div class="sub-cat-btn active" onclick="setOsusumeSubCat('パスタ')">パスタ</div>
+        <div class="sub-cat-btn" onclick="setOsusumeSubCat('期間限定')">期間限定</div>
+        <div class="sub-cat-btn" onclick="setOsusumeSubCat('その他')">その他</div>
+      </div>
+      <div id="osusumeCustomArea" style="display:none">
+        <label>種類（自由入力）</label>
+        <input type="text" id="osusumeCustomSubCat" placeholder="例：季節のスープ">
       </div>
     </div>
 
@@ -1011,6 +1026,14 @@ function renderMorningMenu(data) {
     html += '<div class="menu-empty">未登録</div>';
   }
 
+  // その他おすすめ
+  html += '<div class="menu-board-label" style="margin-top:14px">▍その他おすすめ</div>';
+  if (data.osusume && data.osusume.length > 0) {
+    data.osusume.forEach(function(item) { html += buildMorningStockRow(item); });
+  } else {
+    html += '<div class="menu-empty">未登録</div>';
+  }
+
   document.getElementById('morningMenuBoard').innerHTML = html;
 }
 
@@ -1040,14 +1063,17 @@ function updateMorningStock(rowIndex, stock) {
 // ================================================
 // タブ1: メニュー
 // ================================================
-var currentCategory = 'メイン';
-var currentSubCat   = '肉';
+var currentCategory      = 'メイン';
+var currentSubCat        = '肉';
+var currentOsusumeSubCat = 'パスタ';
 
 function setCategory(cat) {
   currentCategory = cat;
   document.getElementById('toggleMain').classList.toggle('active', cat === 'メイン');
   document.getElementById('toggleObanzai').classList.toggle('active', cat === 'おばんざい');
-  document.getElementById('subCatArea').style.display = cat === 'メイン' ? '' : 'none';
+  document.getElementById('toggleOsusume').classList.toggle('active', cat === 'その他おすすめ');
+  document.getElementById('subCatArea').style.display        = cat === 'メイン'         ? '' : 'none';
+  document.getElementById('osusumeSubCatArea').style.display = cat === 'その他おすすめ' ? '' : 'none';
 }
 
 function setSubCat(sub) {
@@ -1057,13 +1083,31 @@ function setSubCat(sub) {
   });
 }
 
+function setOsusumeSubCat(sub) {
+  currentOsusumeSubCat = sub;
+  document.querySelectorAll('#osusumeSubCatGroup .sub-cat-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.textContent === sub);
+  });
+  document.getElementById('osusumeCustomArea').style.display = sub === 'その他' ? '' : 'none';
+  if (sub !== 'その他') document.getElementById('osusumeCustomSubCat').value = '';
+}
+
 function addItem() {
   var name = document.getElementById('menuInput').value.trim();
   if (!name) { showMsg('menuMsg', '品名を入力してください', false); return; }
 
+  var subCat = '';
+  if (currentCategory === 'メイン') {
+    subCat = currentSubCat;
+  } else if (currentCategory === 'その他おすすめ') {
+    subCat = currentOsusumeSubCat === 'その他'
+      ? document.getElementById('osusumeCustomSubCat').value.trim()
+      : currentOsusumeSubCat;
+  }
+
   var params = {
     category:    currentCategory,
-    subCategory: currentCategory === 'メイン' ? currentSubCat : '',
+    subCategory: subCat,
     name:        name,
     description: document.getElementById('menuDesc').value.trim(),
     quantity:    document.getElementById('menuQty').value.trim()
@@ -1137,7 +1181,8 @@ function loadMenu() {
     .apiGetMenuForStaff();
 }
 
-var SUB_CAT_ORDER_STAFF = ['肉', '魚', '大人のお子様', 'ヘルシー'];
+var SUB_CAT_ORDER_STAFF = ['肉', '魚', '大人のお子様', 'ヘルシー', 'おすすめ'];
+var OSUSUME_SUB_ORDER_STAFF = ['パスタ', '期間限定'];
 
 function renderMenuBoard(data) {
   var html = '';
@@ -1177,6 +1222,29 @@ function renderMenuBoard(data) {
   if (data.obanzai && data.obanzai.length > 0) {
     data.obanzai.forEach(function(item) {
       html += buildItemRow(item);
+    });
+  } else {
+    html += '<div class="menu-empty">未登録</div>';
+  }
+  html += '</div>';
+
+  // ---- その他おすすめ ----
+  html += '<div class="menu-board-section">';
+  html += '<div class="menu-board-label">▍その他おすすめ</div>';
+  if (data.osusume && data.osusume.length > 0) {
+    var oGrouped = {};
+    data.osusume.forEach(function(item) {
+      var sub = item.subCategory || '（未分類）';
+      if (!oGrouped[sub]) oGrouped[sub] = [];
+      oGrouped[sub].push(item);
+    });
+    var oOrdered = OSUSUME_SUB_ORDER_STAFF.filter(function(s) { return oGrouped[s]; });
+    Object.keys(oGrouped).forEach(function(s) {
+      if (oOrdered.indexOf(s) === -1) oOrdered.push(s);
+    });
+    oOrdered.forEach(function(sub) {
+      html += '<div style="font-size:0.72rem;color:#8d6e63;margin:8px 0 4px;font-weight:bold">' + escHtml(sub) + '</div>';
+      oGrouped[sub].forEach(function(item) { html += buildItemRow(item); });
     });
   } else {
     html += '<div class="menu-empty">未登録</div>';

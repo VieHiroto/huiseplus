@@ -4,11 +4,13 @@
 // ============================================================
 
 var MENU_CATEGORY = {
-  MAIN: 'メイン',
-  OBANZAI: 'おばんざい'
+  MAIN:    'メイン',
+  OBANZAI: 'おばんざい',
+  OSUSUME: 'その他おすすめ'
 };
 
-var MAIN_SUB_CATEGORIES = ['肉', '魚', '大人のお子様', 'ヘルシー','おすすめ'];
+var MAIN_SUB_CATEGORIES    = ['肉', '魚', '大人のお子様', 'ヘルシー', 'おすすめ'];
+var OSUSUME_SUB_CATEGORIES = ['パスタ', '期間限定', 'その他'];
 var STOCK_OPTIONS = ['ある', '少し', 'ない'];
 
 // シート列インデックス（0始まり）
@@ -38,7 +40,7 @@ function getMenu() {
   }
 
   var data = _readMenuSheet();
-  return { main: data.main, obanzai: data.obanzai, isClosed: false, isCharter: false, isOpen: biz.isOpen };
+  return { main: data.main, obanzai: data.obanzai, osusume: data.osusume, isClosed: false, isCharter: false, isOpen: biz.isOpen };
 }
 
 /**
@@ -58,6 +60,7 @@ function _readMenuSheet() {
 
   var main = [];
   var obanzai = [];
+  var osusume = [];
 
   for (var i = 1; i < values.length; i++) {
     var row = values[i];
@@ -80,13 +83,16 @@ function _readMenuSheet() {
       main.push(item);
     } else if (row[MCOL.CATEGORY] === MENU_CATEGORY.OBANZAI) {
       obanzai.push(item);
+    } else if (row[MCOL.CATEGORY] === MENU_CATEGORY.OSUSUME) {
+      osusume.push(item);
     }
   }
 
   main.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
   obanzai.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
+  osusume.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
 
-  return { main: main, obanzai: obanzai };
+  return { main: main, obanzai: obanzai, osusume: osusume };
 }
 
 /**
@@ -104,7 +110,7 @@ function addMenuItem(params) {
     return { success: false, error: '品名を入力してください' };
   }
 
-  if ([MENU_CATEGORY.MAIN, MENU_CATEGORY.OBANZAI].indexOf(category) === -1) {
+  if ([MENU_CATEGORY.MAIN, MENU_CATEGORY.OBANZAI, MENU_CATEGORY.OSUSUME].indexOf(category) === -1) {
     return { success: false, error: '不正なカテゴリです' };
   }
 

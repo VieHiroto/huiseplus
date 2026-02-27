@@ -290,6 +290,12 @@
   <div class="menu-card" id="menuObanzaiSection">
     <div class="loading"><div class="spinner"></div>読み込み中...</div>
   </div>
+
+  <!-- その他おすすめ -->
+  <div class="section-title" id="osusumeTitle">その他おすすめ</div>
+  <div class="menu-card" id="menuOsusumeSection">
+    <div class="loading"><div class="spinner"></div>読み込み中...</div>
+  </div>
 </main>
 
 <footer>情報は定期的に更新されます</footer>
@@ -398,10 +404,13 @@
         msg = 'ただいま準備中です。もう少しお待ちください';
       }
       var emptyHtml = '<div class="menu-empty">' + msg + '</div>';
-      document.getElementById('menuMainSection').innerHTML = emptyHtml;
+      document.getElementById('menuMainSection').innerHTML    = emptyHtml;
       document.getElementById('menuObanzaiSection').innerHTML = emptyHtml;
+      document.getElementById('menuOsusumeSection').innerHTML = emptyHtml;
+      document.getElementById('osusumeTitle').style.display   = 'none';
       return;
     }
+    document.getElementById('osusumeTitle').style.display = '';
 
     // ---- メイン（サブカテゴリでグループ） ----
     var mainEl = document.getElementById('menuMainSection');
@@ -439,6 +448,28 @@
       var obHtml = '';
       visibleOb.forEach(function(item) { obHtml += menuItemHtml(item); });
       obanzaiEl.innerHTML = obHtml;
+    }
+
+    // ---- その他おすすめ ----
+    var osusumeEl = document.getElementById('menuOsusumeSection');
+    var visibleOs = (data.osusume || []).filter(function(i) {
+      return !i.hidden && i.stock !== 'ない';
+    });
+
+    if (visibleOs.length === 0) {
+      document.getElementById('osusumeTitle').style.display = 'none';
+      osusumeEl.style.display = 'none';
+    } else {
+      document.getElementById('osusumeTitle').style.display = '';
+      osusumeEl.style.display = '';
+      var osHtml = '';
+      visibleOs.forEach(function(item) {
+        if (item.subCategory) {
+          osHtml += '<div class="sub-cat-label">' + escHtml(item.subCategory) + '</div>';
+        }
+        osHtml += menuItemHtml(item);
+      });
+      osusumeEl.innerHTML = osHtml;
     }
   }
 
