@@ -41,9 +41,14 @@ function apiGetBusinessStatus() {
   return JSON.stringify(getBusinessStatus());
 }
 
-/** [顧客・スタッフ共通] メニュー取得 */
+/** [顧客] メニュー取得（営業時間外は非表示） */
 function apiGetMenu() {
   return JSON.stringify(getMenu());
+}
+
+/** [スタッフ] メニュー取得（営業状況に関わらず常に全件） */
+function apiGetMenuForStaff() {
+  return JSON.stringify(getMenuForStaff());
 }
 
 /** [スタッフ] 営業状況更新 */

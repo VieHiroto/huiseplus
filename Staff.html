@@ -898,7 +898,7 @@ function loadMorning() {
     .withFailureHandler(function(e) {
       document.getElementById('morningMenuBoard').innerHTML = '<div style="color:#e53935">読み込みエラー: ' + escHtml(String(e)) + '</div>';
     })
-    .apiGetMenu();
+    .apiGetMenuForStaff();
 }
 
 function renderMorningNight(data) {
@@ -1134,7 +1134,7 @@ function loadMenu() {
       document.getElementById('menuBoard').innerHTML =
         '<div style="color:#e53935;font-size:0.85rem">読み込みエラー: ' + escHtml(String(e)) + '</div>';
     })
-    .apiGetMenu();
+    .apiGetMenuForStaff();
 }
 
 var SUB_CAT_ORDER_STAFF = ['肉', '魚', '大人のお子様', 'ヘルシー'];

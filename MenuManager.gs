@@ -25,9 +25,8 @@ var MCOL = {
 };
 
 /**
- * 現在のメニュー一覧取得
- * 休業日（定休日・臨時休業）は空リストを返す
- * @returns {Object} { main: [...], obanzai: [...], isClosed: bool }
+ * 現在のメニュー一覧取得（顧客向け: 営業時間外は非表示）
+ * @returns {Object} { main: [...], obanzai: [...], isClosed: bool, isCharter: bool, isOpen: bool }
  */
 function getMenu() {
   var biz = getBusinessStatus();
@@ -38,6 +37,22 @@ function getMenu() {
     return { main: [], obanzai: [], isClosed: false, isCharter: true, isOpen: false };
   }
 
+  var data = _readMenuSheet();
+  return { main: data.main, obanzai: data.obanzai, isClosed: false, isCharter: false, isOpen: biz.isOpen };
+}
+
+/**
+ * スタッフ向けメニュー一覧取得（営業状況に関係なく常に全件返す）
+ * @returns {Object} { main: [...], obanzai: [...] }
+ */
+function getMenuForStaff() {
+  return _readMenuSheet();
+}
+
+/**
+ * メニューシートを読み込んでmain/obanzaiに分けて返す（内部用）
+ */
+function _readMenuSheet() {
   var sheet = getSheet(SHEET_NAMES.MENU);
   var values = sheet.getDataRange().getValues();
 
@@ -71,7 +86,7 @@ function getMenu() {
   main.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
   obanzai.sort(function(a, b) { return a.sortOrder - b.sortOrder; });
 
-  return { main: main, obanzai: obanzai, isClosed: false, isCharter: false, isOpen: biz.isOpen };
+  return { main: main, obanzai: obanzai };
 }
 
 /**
@@ -106,7 +121,7 @@ function addMenuItem(params) {
     'ある', false, sortOrder, now
   ]);
 
-  return { success: true, menu: getMenu() };
+  return { success: true, menu: getMenuForStaff() };
 }
 
 /**
@@ -137,7 +152,7 @@ function deleteMenuItem(rowIndex) {
   }
 
   sheet.deleteRow(rowIndex);
-  return { success: true, menu: getMenu() };
+  return { success: true, menu: getMenuForStaff() };
 }
 
 /**
@@ -151,7 +166,7 @@ function updateMenuItemStock(rowIndex, stock) {
   }
   var sheet = getSheet(SHEET_NAMES.MENU);
   sheet.getRange(rowIndex, MCOL.STOCK + 1).setValue(stock);
-  return { success: true, menu: getMenu() };
+  return { success: true, menu: getMenuForStaff() };
 }
 
 /**
@@ -164,7 +179,7 @@ function toggleMenuItemHidden(rowIndex) {
   var current = cell.getValue();
   var newVal = !(current === true || current === '非表示');
   cell.setValue(newVal);
-  return { success: true, menu: getMenu() };
+  return { success: true, menu: getMenuForStaff() };
 }
 
 /**
@@ -204,5 +219,5 @@ function moveMenuItem(rowIndex, direction) {
   sheet.getRange(rowIndex, MCOL.SORT_ORDER + 1).setValue(swapOrder);
   sheet.getRange(categoryItems[swapPos].sheetRow, MCOL.SORT_ORDER + 1).setValue(myOrder);
 
-  return { success: true, menu: getMenu() };
+  return { success: true, menu: getMenuForStaff() };
 }
