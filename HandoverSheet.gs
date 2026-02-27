@@ -11,7 +11,7 @@ var HOMEWORK_CATEGORIES = ['仕込み', '発注', '掃除', 'その他'];
 
 /**
  * 宿題マスタを全件取得
- * @returns {Array} [{rowIndex, category, content, addedAt}]
+ * @returns {Array} [{rowIndex, category, title, content, amount, addedAt}]
  */
 function getHomeworkMaster() {
   var sheet = getSheet(SHEET_NAMES.HANDOVER_HOMEWORK);
@@ -20,12 +20,16 @@ function getHomeworkMaster() {
   var result = [];
   for (var i = 1; i < values.length; i++) {
     var row = values[i];
-    if (!row[1]) continue; // 内容が空の行はスキップ
+    if (!row[1]) continue; // 題名が空の行はスキップ
+    // 旧フォーマット: [カテゴリ, 内容, 追加日] → col4(追加日)が空の場合はcol2を追加日として扱う
+    var isNewFormat = !!(row[4]);
     result.push({
       rowIndex: i + 1,
       category: String(row[0] || ''),
-      content:  String(row[1] || ''),
-      addedAt:  String(row[2] || '')
+      title:    String(row[1] || ''),
+      content:  isNewFormat ? String(row[2] || '') : '',
+      amount:   isNewFormat ? String(row[3] || '') : '',
+      addedAt:  isNewFormat ? String(row[4] || '') : String(row[2] || '')
     });
   }
   return result;
@@ -34,21 +38,60 @@ function getHomeworkMaster() {
 /**
  * 宿題マスタに新しいアイテムを追加
  * @param {string} category - 仕込み / 発注 / 掃除 / その他
- * @param {string} content  - 宿題内容
+ * @param {string} title    - 題名（必須）
+ * @param {string} content  - 内容詳細（任意）
+ * @param {string} amount   - 計量（任意）
  */
-function addHomeworkItem(category, content) {
+function addHomeworkItem(category, title, content, amount) {
   if (HOMEWORK_CATEGORIES.indexOf(category) === -1) {
     return { success: false, error: '不正なカテゴリです' };
   }
-  content = String(content || '').trim();
-  if (!content) {
-    return { success: false, error: '内容を入力してください' };
+  title = String(title || '').trim();
+  if (!title) {
+    return { success: false, error: '題名を入力してください' };
   }
+  content = String(content || '').trim();
+  amount  = String(amount  || '').trim();
 
   var sheet = getSheet(SHEET_NAMES.HANDOVER_HOMEWORK);
   var today = _formatDateHandover(new Date());
-  sheet.appendRow([category, content, today]);
+  sheet.appendRow([category, title, content, amount, today]);
 
+  return { success: true, homework: getHomeworkMaster() };
+}
+
+/**
+ * 宿題マスタの既存アイテムを更新
+ * @param {number} rowIndex
+ * @param {Object} params - { category, title, content, amount }
+ */
+function updateHomeworkItem(rowIndex, params) {
+  var sheet = getSheet(SHEET_NAMES.HANDOVER_HOMEWORK);
+  var lastRow = sheet.getLastRow();
+  if (rowIndex < 2 || rowIndex > lastRow) {
+    return { success: false, error: '不正な行番号です' };
+  }
+  var row = sheet.getRange(rowIndex, 1, 1, 5).getValues()[0];
+  if (params.category !== undefined) row[0] = params.category;
+  if (params.title    !== undefined) row[1] = String(params.title   || '').trim();
+  if (params.content  !== undefined) row[2] = String(params.content || '').trim();
+  if (params.amount   !== undefined) row[3] = String(params.amount  || '').trim();
+  // row[4] (追加日) は変更しない
+  sheet.getRange(rowIndex, 1, 1, 5).setValues([row]);
+  return { success: true, homework: getHomeworkMaster() };
+}
+
+/**
+ * 宿題マスタからアイテムを削除
+ * @param {number} rowIndex
+ */
+function deleteHomeworkItem(rowIndex) {
+  var sheet = getSheet(SHEET_NAMES.HANDOVER_HOMEWORK);
+  var lastRow = sheet.getLastRow();
+  if (rowIndex < 2 || rowIndex > lastRow) {
+    return { success: false, error: '不正な行番号です' };
+  }
+  sheet.deleteRow(rowIndex);
   return { success: true, homework: getHomeworkMaster() };
 }
 

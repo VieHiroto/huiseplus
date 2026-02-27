@@ -189,6 +189,26 @@ function toggleMenuItemHidden(rowIndex) {
 }
 
 /**
+ * メニュー更新（品名・説明・量・サブカテゴリ）
+ * @param {number} rowIndex
+ * @param {Object} params - { subCategory, name, description, quantity }
+ */
+function updateMenuItem(rowIndex, params) {
+  var sheet = getSheet(SHEET_NAMES.MENU);
+  var lastRow = sheet.getLastRow();
+  if (rowIndex < 2 || rowIndex > lastRow) {
+    return { success: false, error: '不正な行番号です' };
+  }
+  var row = sheet.getRange(rowIndex, 1, 1, 9).getValues()[0];
+  if (params.subCategory !== undefined) row[MCOL.SUB_CATEGORY] = params.subCategory;
+  if (params.name        !== undefined) row[MCOL.NAME]         = String(params.name).trim();
+  if (params.description !== undefined) row[MCOL.DESCRIPTION]  = params.description;
+  if (params.quantity    !== undefined) row[MCOL.QUANTITY]      = params.quantity;
+  sheet.getRange(rowIndex, 1, 1, 9).setValues([row]);
+  return { success: true, menu: getMenuForStaff() };
+}
+
+/**
  * 並び順変更（同一カテゴリ内で上/下に移動）
  * @param {number} rowIndex
  * @param {string} direction - 'up' / 'down'

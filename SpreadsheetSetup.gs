@@ -151,10 +151,10 @@ function _setupHandoverHomeworkSheet(ss) {
   var sheet = _getOrCreateSheet(ss, SHEET_NAMES.HANDOVER_HOMEWORK);
   sheet.clearContents();
 
-  var headers = ['カテゴリ', '内容', '追加日'];
+  var headers = ['カテゴリ', '題名', '内容', '計量', '追加日'];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers])
     .setFontWeight('bold').setBackground('#e8f5e9');
-  [100, 350, 120].forEach(function(w, i) {
+  [100, 200, 300, 100, 120].forEach(function(w, i) {
     sheet.setColumnWidth(i + 1, w);
   });
 }

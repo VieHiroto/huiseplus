@@ -115,7 +115,23 @@ function apiGetHomeworkMaster() {
 /** [スタッフ] 宿題マスタに追加 */
 function apiAddHomeworkItem(paramsJson) {
   var params = JSON.parse(paramsJson);
-  return JSON.stringify(addHomeworkItem(params.category, params.content));
+  return JSON.stringify(addHomeworkItem(params.category, params.title, params.content, params.amount));
+}
+
+/** [スタッフ] 宿題マスタ更新 */
+function apiUpdateHomeworkItem(paramsJson) {
+  var params = JSON.parse(paramsJson);
+  return JSON.stringify(updateHomeworkItem(parseInt(params.rowIndex, 10), params));
+}
+
+/** [スタッフ] 宿題マスタ削除 */
+function apiDeleteHomeworkItem(rowIndex) {
+  return JSON.stringify(deleteHomeworkItem(parseInt(rowIndex, 10)));
+}
+
+/** [スタッフ] メニュー更新 */
+function apiUpdateMenuItem(rowIndex, paramsJson) {
+  return JSON.stringify(updateMenuItem(parseInt(rowIndex, 10), JSON.parse(paramsJson)));
 }
 
 /** [スタッフ] 引き継ぎ_昼 保存 */

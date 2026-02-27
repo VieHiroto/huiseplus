@@ -556,6 +556,108 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ---- 宿題 詳細展開・編集UI ---- */
+    .hw-item-row {
+      border-bottom: 1px solid #f5f5f5;
+      padding: 8px 4px;
+    }
+    .hw-item-row:last-child { border-bottom: none; }
+
+    .hw-item-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hw-amount-badge {
+      font-size: 0.72rem;
+      background: #e3f2fd;
+      color: #1565c0;
+      border-radius: 10px;
+      padding: 1px 8px;
+      white-space: nowrap;
+    }
+
+    .hw-detail-area {
+      display: none;
+      font-size: 0.82rem;
+      color: #546e7a;
+      padding: 6px 10px;
+      margin-top: 4px;
+      background: #f9f9f9;
+      border-radius: 6px;
+      white-space: pre-line;
+    }
+
+    .btn-expand {
+      font-size: 0.72rem;
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 2px 7px;
+      color: #607d8b;
+      cursor: pointer;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    .btn-hw-call {
+      font-size: 0.72rem;
+      background: #e8eaf6;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 8px;
+      color: #3949ab;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-hw-del {
+      font-size: 0.72rem;
+      background: #ffebee;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 8px;
+      color: #c62828;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-menu-call {
+      font-size: 0.72rem;
+      background: #e8eaf6;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 8px;
+      color: #3949ab;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .edit-mode-indicator {
+      background: #fff3e0;
+      border: 1px solid #ffb74d;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      color: #e65100;
+      margin-bottom: 8px;
+      display: none;
+    }
+
+    .btn-cancel-edit {
+      background: #eceff1;
+      border: none;
+      border-radius: 6px;
+      padding: 10px;
+      color: #607d8b;
+      cursor: pointer;
+      font-size: 0.88rem;
+      width: 100%;
+      margin-top: 6px;
+    }
+
     /* ---- 朝の確認 清掃ステータス ---- */
     .clean-status {
       display: flex;
@@ -627,6 +729,7 @@
 
   <div class="card">
     <div class="card-title">本日のメニュー追加</div>
+    <div class="edit-mode-indicator" id="menuEditIndicator"></div>
 
     <!-- カテゴリ -->
     <div class="toggle-group">
@@ -670,7 +773,8 @@
     <label>量（任意）</label>
     <input type="text" id="menuQty" placeholder="例：1人前">
 
-    <button class="btn btn-teal" onclick="addItem()" style="width:100%; margin-top:4px">追加する</button>
+    <button class="btn btn-teal" id="menuSubmitBtn" onclick="addItem()" style="width:100%; margin-top:4px">追加する</button>
+    <button class="btn-cancel-edit" id="menuCancelBtn" style="display:none" onclick="cancelMenuEdit()">キャンセル</button>
     <div class="msg" id="menuMsg"></div>
   </div>
 
@@ -758,7 +862,8 @@
   </div>
 
   <div class="card">
-    <div class="card-title">新しい宿題を追加</div>
+    <div class="card-title">宿題を追加 / 編集</div>
+    <div class="edit-mode-indicator" id="hwEditIndicator"></div>
     <label>カテゴリ</label>
     <select id="newHwCategory">
       <option value="仕込み">仕込み</option>
@@ -766,9 +871,14 @@
       <option value="掃除">掃除</option>
       <option value="その他">その他</option>
     </select>
-    <label>内容</label>
-    <input type="text" id="newHwContent" placeholder="例：だし汁を仕込む">
-    <button class="btn btn-teal" onclick="addHomework()" style="width:100%">追加する</button>
+    <label>題名（必須）</label>
+    <input type="text" id="newHwTitle" placeholder="例：だし汁を仕込む">
+    <label>内容（任意・詳しく見るボタンで表示）</label>
+    <textarea id="newHwContent" placeholder="例：昆布とかつおを水から取り、沸騰直前に昆布を取り出す..." style="min-height:70px"></textarea>
+    <label>計量（任意）</label>
+    <input type="text" id="newHwAmount" placeholder="例：3L、2パック">
+    <button class="btn btn-teal" id="hwSubmitBtn" onclick="addHomework()" style="width:100%">追加する</button>
+    <button class="btn-cancel-edit" id="hwCancelBtn" style="display:none" onclick="cancelHwEdit()">キャンセル</button>
     <div class="msg" id="hwAddMsg"></div>
   </div>
 
@@ -973,7 +1083,7 @@ function renderMorningNight(data) {
     uncompleted.forEach(function(h) {
       html += '<div class="morning-hw-item">' +
         '<span class="hw-cat-tag">' + escHtml(h.category) + '</span>' +
-        escHtml(h.content) + '</div>';
+        escHtml(h.title || h.content) + '</div>';
     });
     html += '<div style="margin-bottom:10px"></div>';
   }
@@ -1066,6 +1176,8 @@ function updateMorningStock(rowIndex, stock) {
 var currentCategory      = 'メイン';
 var currentSubCat        = '肉';
 var currentOsusumeSubCat = 'パスタ';
+var editingMenuRowIndex  = null;  // null=追加モード, 数値=編集モード
+var menuItemsCache       = {};    // rowIndex → item オブジェクト（呼び出し用）
 
 function setCategory(cat) {
   currentCategory = cat;
@@ -1105,31 +1217,92 @@ function addItem() {
       : currentOsusumeSubCat;
   }
 
-  var params = {
-    category:    currentCategory,
-    subCategory: subCat,
-    name:        name,
-    description: document.getElementById('menuDesc').value.trim(),
-    quantity:    document.getElementById('menuQty').value.trim()
-  };
+  if (editingMenuRowIndex) {
+    // 編集モード
+    var updateParams = {
+      subCategory: subCat,
+      name:        name,
+      description: document.getElementById('menuDesc').value.trim(),
+      quantity:    document.getElementById('menuQty').value.trim()
+    };
+    var ri = editingMenuRowIndex;
+    google.script.run
+      .withSuccessHandler(function(json) {
+        var res = JSON.parse(json);
+        if (res.success) {
+          cancelMenuEdit();
+          showMsg('menuMsg', '更新しました', true);
+          renderMenuBoard(res.menu);
+        } else {
+          showMsg('menuMsg', res.error || 'エラーが発生しました', false);
+        }
+      })
+      .withFailureHandler(function(e) {
+        showMsg('menuMsg', '通信エラー: ' + String(e), false);
+      })
+      .apiUpdateMenuItem(ri, JSON.stringify(updateParams));
+  } else {
+    // 追加モード
+    var addParams = {
+      category:    currentCategory,
+      subCategory: subCat,
+      name:        name,
+      description: document.getElementById('menuDesc').value.trim(),
+      quantity:    document.getElementById('menuQty').value.trim()
+    };
+    google.script.run
+      .withSuccessHandler(function(json) {
+        var res = JSON.parse(json);
+        if (res.success) {
+          document.getElementById('menuInput').value = '';
+          document.getElementById('menuDesc').value  = '';
+          document.getElementById('menuQty').value   = '';
+          showMsg('menuMsg', '追加しました', true);
+          renderMenuBoard(res.menu);
+        } else {
+          showMsg('menuMsg', res.error || 'エラーが発生しました', false);
+        }
+      })
+      .withFailureHandler(function(e) {
+        showMsg('menuMsg', '通信エラー: ' + String(e), false);
+      })
+      .apiAddMenuItem(JSON.stringify(addParams));
+  }
+}
 
-  google.script.run
-    .withSuccessHandler(function(json) {
-      var res = JSON.parse(json);
-      if (res.success) {
-        document.getElementById('menuInput').value = '';
-        document.getElementById('menuDesc').value  = '';
-        document.getElementById('menuQty').value   = '';
-        showMsg('menuMsg', '追加しました', true);
-        renderMenuBoard(res.menu);
-      } else {
-        showMsg('menuMsg', res.error || 'エラーが発生しました', false);
-      }
-    })
-    .withFailureHandler(function(e) {
-      showMsg('menuMsg', '通信エラー: ' + String(e), false);
-    })
-    .apiAddMenuItem(JSON.stringify(params));
+function callMenuItem(item) {
+  editingMenuRowIndex = item.rowIndex;
+  setCategory(item.category);
+  if (item.category === 'メイン') {
+    setSubCat(item.subCategory || '肉');
+  } else if (item.category === 'その他おすすめ') {
+    var knownSubs = ['パスタ', '期間限定'];
+    if (knownSubs.indexOf(item.subCategory) !== -1) {
+      setOsusumeSubCat(item.subCategory);
+    } else {
+      setOsusumeSubCat('その他');
+      document.getElementById('osusumeCustomSubCat').value = item.subCategory || '';
+    }
+  }
+  document.getElementById('menuInput').value = item.name        || '';
+  document.getElementById('menuDesc').value  = item.description || '';
+  document.getElementById('menuQty').value   = item.quantity    || '';
+  document.getElementById('menuSubmitBtn').textContent = '更新する';
+  document.getElementById('menuCancelBtn').style.display = '';
+  document.getElementById('menuEditIndicator').style.display = '';
+  document.getElementById('menuEditIndicator').textContent = '編集モード：「' + (item.name || '') + '」を更新します';
+  document.getElementById('menuMsg').textContent = '';
+  window.scrollTo(0, 0);
+}
+
+function cancelMenuEdit() {
+  editingMenuRowIndex = null;
+  document.getElementById('menuInput').value = '';
+  document.getElementById('menuDesc').value  = '';
+  document.getElementById('menuQty').value   = '';
+  document.getElementById('menuSubmitBtn').textContent = '追加する';
+  document.getElementById('menuCancelBtn').style.display = 'none';
+  document.getElementById('menuEditIndicator').style.display = 'none';
 }
 
 function updateStock(rowIndex, stock) {
@@ -1185,6 +1358,7 @@ var SUB_CAT_ORDER_STAFF = ['肉', '魚', '大人のお子様', 'ヘルシー', '
 var OSUSUME_SUB_ORDER_STAFF = ['パスタ', '期間限定'];
 
 function renderMenuBoard(data) {
+  menuItemsCache = {}; // キャッシュリセット
   var html = '';
 
   // ---- メイン（サブカテゴリ別） ----
@@ -1256,6 +1430,7 @@ function renderMenuBoard(data) {
 
 function buildItemRow(item) {
   var ri = item.rowIndex;
+  menuItemsCache[ri] = item; // 呼び出しボタン用にキャッシュ
   var hiddenClass = item.hidden ? ' hidden-item' : '';
   var stocks = ['ある', '少し', 'ない'];
   var stockBtns = stocks.map(function(s) {
@@ -1281,6 +1456,7 @@ function buildItemRow(item) {
       '<button class="btn-move" onclick="moveItem(' + ri + ',\'up\')">↑</button>' +
       '<button class="btn-move" onclick="moveItem(' + ri + ',\'down\')">↓</button>' +
       '<button class="btn-hide' + hideCls + '" onclick="toggleHidden(' + ri + ')">' + hideLabel + '</button>' +
+      '<button class="btn-menu-call" onclick="callMenuItem(menuItemsCache[' + ri + '])">呼出</button>' +
       '<button class="btn-del" onclick="deleteItem(' + ri + ')">削除</button>' +
     '</div>' +
   '</div>';
@@ -1341,8 +1517,9 @@ function saveBusiness() {
 // ================================================
 // タブ3: 引き継ぎ資料【昼】
 // ================================================
-var hwMaster   = [];   // 宿題マスタ全件
-var dayActiveIds = []; // 本日使用する宿題のrowIndex配列
+var hwMaster        = [];   // 宿題マスタ全件
+var dayActiveIds    = [];   // 本日使用する宿題のrowIndex配列
+var editingHwRowIndex = null; // null=追加モード, 数値=編集モード
 
 function loadHandoverDay() {
   document.getElementById('homeworkList').innerHTML = '<span class="spinner-sm"></span> 読み込み中...';
@@ -1381,11 +1558,31 @@ function renderHomeworkList() {
     } else {
       items.forEach(function(item) {
         var isActive = dayActiveIds.indexOf(item.rowIndex) !== -1;
-        html += '<label class="hw-item">' +
-          '<input type="checkbox" class="hw-check" data-row="' + item.rowIndex + '"' +
-          (isActive ? ' checked' : '') + '>' +
-          '<span>' + escHtml(item.content) + '</span>' +
-          '</label>';
+        var ri = item.rowIndex;
+        var detailId = 'hw-detail-' + ri;
+        var hasDetail = item.content || item.amount;
+
+        html += '<div class="hw-item-row">';
+        html += '<div class="hw-item-header">';
+        html += '<input type="checkbox" class="hw-check" data-row="' + ri + '"' +
+          (isActive ? ' checked' : '') +
+          ' style="width:18px;height:18px;flex-shrink:0;margin-bottom:0;border:none;cursor:pointer">';
+        html += '<span style="flex:1;font-size:0.9rem">' + escHtml(item.title || item.content) + '</span>';
+        if (item.amount) {
+          html += '<span class="hw-amount-badge">' + escHtml(item.amount) + '</span>';
+        }
+        if (hasDetail) {
+          html += '<button class="btn-expand" onclick="toggleHwDetail(\'' + detailId + '\', this)">詳しく見る▼</button>';
+        }
+        html += '<button class="btn-hw-call" onclick="callHomeworkItem(' + ri + ')">呼出</button>';
+        html += '<button class="btn-hw-del" onclick="deleteHomework(' + ri + ')">削除</button>';
+        html += '</div>';
+        if (hasDetail) {
+          html += '<div id="' + detailId + '" class="hw-detail-area">';
+          if (item.content) html += escHtml(item.content);
+          html += '</div>';
+        }
+        html += '</div>';
       });
     }
     html += '</div>';
@@ -1394,24 +1591,97 @@ function renderHomeworkList() {
   document.getElementById('homeworkList').innerHTML = html || '<div class="menu-empty">宿題がありません</div>';
 }
 
-function addHomework() {
-  var category = document.getElementById('newHwCategory').value;
-  var content  = document.getElementById('newHwContent').value.trim();
-  if (!content) { showMsg('hwAddMsg', '内容を入力してください', false); return; }
+function toggleHwDetail(id, btn) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var isOpen = el.style.display === 'block';
+  el.style.display = isOpen ? 'none' : 'block';
+  btn.textContent  = isOpen ? '詳しく見る▼' : '閉じる▲';
+}
 
+function callHomeworkItem(rowIndex) {
+  var item = null;
+  for (var i = 0; i < hwMaster.length; i++) {
+    if (hwMaster[i].rowIndex === rowIndex) { item = hwMaster[i]; break; }
+  }
+  if (!item) return;
+  editingHwRowIndex = rowIndex;
+  document.getElementById('newHwCategory').value = item.category;
+  document.getElementById('newHwTitle').value    = item.title   || '';
+  document.getElementById('newHwContent').value  = item.content || '';
+  document.getElementById('newHwAmount').value   = item.amount  || '';
+  document.getElementById('hwSubmitBtn').textContent = '更新する';
+  document.getElementById('hwCancelBtn').style.display = '';
+  document.getElementById('hwEditIndicator').style.display = '';
+  document.getElementById('hwEditIndicator').textContent = '編集モード：「' + (item.title || item.content || '') + '」を更新します';
+  document.getElementById('hwAddMsg').textContent = '';
+}
+
+function cancelHwEdit() {
+  editingHwRowIndex = null;
+  document.getElementById('newHwTitle').value   = '';
+  document.getElementById('newHwContent').value = '';
+  document.getElementById('newHwAmount').value  = '';
+  document.getElementById('hwSubmitBtn').textContent = '追加する';
+  document.getElementById('hwCancelBtn').style.display = 'none';
+  document.getElementById('hwEditIndicator').style.display = 'none';
+}
+
+function deleteHomework(rowIndex) {
+  if (!confirm('この宿題をリストから削除しますか？')) return;
   google.script.run
     .withSuccessHandler(function(json) {
       var res = JSON.parse(json);
       if (res.success) {
         hwMaster = res.homework;
-        document.getElementById('newHwContent').value = '';
-        showMsg('hwAddMsg', '追加しました', true);
+        if (editingHwRowIndex === rowIndex) cancelHwEdit();
         renderHomeworkList();
-      } else {
-        showMsg('hwAddMsg', res.error || 'エラー', false);
       }
     })
-    .apiAddHomeworkItem(JSON.stringify({ category: category, content: content }));
+    .apiDeleteHomeworkItem(rowIndex);
+}
+
+function addHomework() {
+  var category = document.getElementById('newHwCategory').value;
+  var title    = document.getElementById('newHwTitle').value.trim();
+  var content  = document.getElementById('newHwContent').value.trim();
+  var amount   = document.getElementById('newHwAmount').value.trim();
+  if (!title) { showMsg('hwAddMsg', '題名を入力してください', false); return; }
+
+  if (editingHwRowIndex) {
+    // 編集モード
+    var params = { rowIndex: editingHwRowIndex, category: category, title: title, content: content, amount: amount };
+    google.script.run
+      .withSuccessHandler(function(json) {
+        var res = JSON.parse(json);
+        if (res.success) {
+          hwMaster = res.homework;
+          cancelHwEdit();
+          showMsg('hwAddMsg', '更新しました', true);
+          renderHomeworkList();
+        } else {
+          showMsg('hwAddMsg', res.error || 'エラー', false);
+        }
+      })
+      .apiUpdateHomeworkItem(JSON.stringify(params));
+  } else {
+    // 追加モード
+    google.script.run
+      .withSuccessHandler(function(json) {
+        var res = JSON.parse(json);
+        if (res.success) {
+          hwMaster = res.homework;
+          document.getElementById('newHwTitle').value   = '';
+          document.getElementById('newHwContent').value = '';
+          document.getElementById('newHwAmount').value  = '';
+          showMsg('hwAddMsg', '追加しました', true);
+          renderHomeworkList();
+        } else {
+          showMsg('hwAddMsg', res.error || 'エラー', false);
+        }
+      })
+      .apiAddHomeworkItem(JSON.stringify({ category: category, title: title, content: content, amount: amount }));
+  }
 }
 
 function saveDayHandover() {
@@ -1617,7 +1887,7 @@ function renderNightHomework(completedIds) {
     incomplete.forEach(function(h) {
       html += '<label class="hw-item">' +
         '<input type="checkbox" class="hw-complete-check" data-row="' + h.rowIndex + '">' +
-        '<span>' + escHtml(h.content) +
+        '<span>' + escHtml(h.title || h.content) +
           '<span class="hw-cat-tag">' + escHtml(h.category) + '</span>' +
         '</span>' +
         '</label>';
@@ -1629,7 +1899,7 @@ function renderNightHomework(completedIds) {
     completed.forEach(function(h) {
       html += '<label class="hw-item">' +
         '<input type="checkbox" class="hw-complete-check" data-row="' + h.rowIndex + '" checked>' +
-        '<span class="hw-done-text">' + escHtml(h.content) +
+        '<span class="hw-done-text">' + escHtml(h.title || h.content) +
           '<span class="hw-cat-tag">' + escHtml(h.category) + '</span>' +
         '</span>' +
         '</label>';
