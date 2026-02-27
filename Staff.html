@@ -867,6 +867,7 @@
     <label>カテゴリ</label>
     <select id="newHwCategory">
       <option value="仕込み">仕込み</option>
+      <option value="計量">計量</option>
       <option value="発注">発注</option>
       <option value="掃除">掃除</option>
       <option value="その他">その他</option>
@@ -1545,7 +1546,7 @@ function loadHandoverDay() {
     .apiGetHomeworkMaster();
 }
 
-var HW_CATS = ['仕込み', '発注', '掃除', 'その他'];
+var HW_CATS = ['仕込み', '計量', '発注', '掃除', 'その他'];
 
 function renderHomeworkList() {
   var html = '';
